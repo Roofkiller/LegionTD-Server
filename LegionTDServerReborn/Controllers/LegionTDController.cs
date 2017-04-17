@@ -86,7 +86,7 @@ namespace LegionTDServerReborn.Controllers
             if (!steamId.HasValue)
                 return Json(new MissingArgumentFailure());
             Player player = await GetFullPlayerQueryable(_db).FirstOrDefaultAsync(p => p.SteamId == steamId.Value);
-            return Json(player.MatchDatas.OrderByDescending(m => m.Match.Date).Select(m => new MatchResponse(m)));
+            return Json(player.MatchDatas.OrderByDescending(m => m.Match.Date).Select((m, i) => new MatchResponse(m, i + from??0)));
         }
 
         public async Task<ActionResult> GetPlayerInfo(long? steamId)
@@ -105,7 +105,7 @@ namespace LegionTDServerReborn.Controllers
 //                    await _db.Entry(unitData).Reference(u => u.Unit).LoadAsync();
 //                }
 //            }
-            Player player = await GetFullPlayerQueryable(_db).FirstOrDefaultAsync(p => p.SteamId == steamId.Value);
+            Player player = await GetPlayer(steamId.Value);
             return player == null ? Json(new NotFoundFailure()) : Json(new PlayerResponse(player));
         }
 
@@ -155,23 +155,29 @@ namespace LegionTDServerReborn.Controllers
         {
             if (string.IsNullOrEmpty(rankingType))
                 return Json(new InvalidRequestFailure());
-            var cacheKey = $"{rankingType}_{from}_{to}_{asc}";
-            if (!_cache.TryGetValue(cacheKey, out RankingResponse response))
-            {
-                var playerCount = await GetPlayerCount();
-                var content = await GetRanking(rankingType, asc, from ?? 0, to ?? -1);
-                var result = content.Select((t, i) => new PlayerRankingResponse(t, i)).ToList();
-                response = new RankingResponse {PlayerCount = playerCount, Ranking = result};
-                _cache.Set(cacheKey, response, DateTimeOffset.Now.AddDays(1));
-            }
+            var playerCount = await GetPlayerCount();
+            var content = await GetRanking(rankingType, asc, from ?? 0, to ?? -1);
+            List<PlayerRankingResponse> result = new List<PlayerRankingResponse>();
+            int i = 0;
+            foreach (var id in content)
+                result.Add(new PlayerRankingResponse(await GetPlayer(id), i++));
+            var response = new RankingResponse {PlayerCount = playerCount, Ranking = result};
             return Json(response);
         }
 
-        private async Task<int> GetPositionInRanking(List<Player> ranking, Player player)
+        private async Task<Player> GetPlayer(long steamId)
+        {
+            using (var db = new LegionTdContext())
+            {
+                return await GetFullPlayerQueryable(db).FirstOrDefaultAsync(p => p.SteamId == steamId);
+            }
+        }
+
+        private async Task<int> GetPositionInRanking(List<long> ranking, Player player)
         {
             if (player == null)
                 return await GetPlayerCount();
-            var result = ranking.FindIndex(p => p.SteamId == player.SteamId);
+            var result = ranking.FindIndex(p => p == player.SteamId);
             if (result == -1)
                 result = await GetPlayerCount();
             return result;
@@ -202,66 +208,42 @@ namespace LegionTDServerReborn.Controllers
                 .ThenInclude(m => m.Fraction);
         }
 
-        public async Task<List<Player>> GetRanking(string rankingType, bool asc, int from = 0, int to = -1)
         {
-            var cacheKey = $"{rankingType}|{asc}|{from}|{to}";
-            if (_cache.TryGetValue(cacheKey, out List<Player> result))
-                return result;
-
-            using (var db = new LegionTdContext())
+            var cacheKey = $"{rankingType}|{asc}";
+            List<long> result;
+            if (!_cache.TryGetValue(cacheKey, out result))
             {
-                IQueryable<Player> players = GetFullPlayerQueryable(db);
-                switch (rankingType)
+                using (var db = new LegionTdContext())
                 {
-                    case RankingTypes.Experience:
-                        if (asc)
-                            players = players.OrderBy(p => p.Experience);
-                        else
-                            players = players.OrderByDescending(p => p.Experience);
-                        break;
-                    case RankingTypes.EarnedTangos:
-                        if (asc)
-                            players = players.OrderBy(p => p.EarnedTangos);
-                        else
-                            players = players.OrderByDescending(p => p.EarnedTangos);
-                        break;
-                    case RankingTypes.Kills:
-                        if (asc)
-                            players = players.OrderBy(p => p.Kills);
-                        else
-                            players = players.OrderByDescending(p => p.Kills);
-                        break;
-                    case RankingTypes.WinRate:
-                        if (asc)
-                            players = players.OrderBy(p => p.WinRate);
-                        else
-                            players = players.OrderByDescending(p => p.WinRate);
-                        break;
-                    case RankingTypes.DuelWinRate:
-                        if (asc)
-                            players = players.OrderBy(p => p.DuelWinRate);
-                        else
-                            players = players.OrderByDescending(p => p.DuelWinRate);
-                        break;
-                    case RankingTypes.WonGames:
-                        if (asc)
-                            players = players.OrderBy(p => p.WonGames);
-                        else
-                            players = players.OrderByDescending(p => p.WonGames);
-                        break;
-                    case RankingTypes.Rating:
-                        if (asc)
-                            players = players.OrderBy(p => p.Rating);
-                        else
-                            players = players.OrderByDescending(p => p.Rating);
-                        break;
-                    default:
-                        return new List<Player>();
+                    IQueryable<Player> players = GetFullPlayerQueryable(db);
+                    switch (rankingType)
+                    {
+                        case RankingTypes.Experience:
+                            players = asc ? players.OrderBy(p => p.Experience) : players.OrderByDescending(p => p.Experience);
+                            break;
+                        case RankingTypes.EarnedTangos:
+                            players = asc ? players.OrderBy(p => p.EarnedTangos) : players.OrderByDescending(p => p.EarnedTangos);
+                            break;
+                        case RankingTypes.Kills:
+                            players = asc ? players.OrderBy(p => p.Kills) : players.OrderByDescending(p => p.Kills);
+                            break;
+                        case RankingTypes.WinRate:
+                            players = asc ? players.OrderBy(p => p.WinRate) : players.OrderByDescending(p => p.WinRate);
+                            break;
+                        case RankingTypes.DuelWinRate:
+                            players = asc ? players.OrderBy(p => p.DuelWinRate) : players.OrderByDescending(p => p.DuelWinRate);
+                            break;
+                        case RankingTypes.WonGames:
+                            players = asc ? players.OrderBy(p => p.WonGames) : players.OrderByDescending(p => p.WonGames);
+                            break;
+                        case RankingTypes.Rating:
+                            players = asc ? players.OrderBy(p => p.Rating) : players.OrderByDescending(p => p.Rating);
+                            break;
+                        default:
+                            return new List<long>();
+                    }
                 }
 
-                players = players.Skip(from);
-                if (to > 0)
-                    players = players.Take(to - from + 1);
 
                 _cache.Set(cacheKey, result = await players.ToListAsync());
             }

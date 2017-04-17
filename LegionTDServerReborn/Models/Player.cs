@@ -16,8 +16,11 @@ namespace LegionTDServerReborn.Models
         public List<PlayerMatchData> MatchDatas { get; set; }
 
         public int Rating => 1000 + MatchDatas.Where(m => !m.Match.IsTraining).Sum(m => m.RatingChange);
+        public float TimePlayed => MatchDatas.Where(m => !m.Match.IsTraining).Sum(m => m.Match.Duration);
         public long EarnedTangos => MatchDatas.Where(m => !m.Match.IsTraining).Sum(m => m.EarnedTangos);
+        public float TangosPerMinute => (EarnedTangos / TimePlayed).NaNToZero();
         public long EarnedGold => MatchDatas.Where(m => !m.Match.IsTraining).Sum(m => m.EarnedGold);
+        public float GoldPerMinute => (EarnedGold / TimePlayed).NaNToZero();
         public int PlayedGames => MatchDatas.Count(m => !m.Match.IsTraining);
         public int WonGames => MatchDatas.Count(m => m.Won && !m.Match.IsTraining);
         public int LostGames => MatchDatas.Count(m => !m.Won && !m.Match.IsTraining);
@@ -94,6 +97,9 @@ namespace LegionTDServerReborn.Models
                 ["duel_win_rate"] = DuelWinRate.ToString(),
                 ["rating"] = Rating.ToString(),
                 ["earned_gold"] = EarnedGold.ToString(),
+                ["gold_per_minute"] = GoldPerMinute.ToString(),
+                ["tangos_per_minute"] = TangosPerMinute.ToString(),
+                ["time_played"] = TimePlayed.ToString()
             };
             foreach (var pair in PlayedFractions)
                 result[pair.Key] = pair.Value.ToString();
