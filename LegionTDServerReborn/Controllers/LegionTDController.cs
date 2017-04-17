@@ -208,6 +208,7 @@ namespace LegionTDServerReborn.Controllers
                 .ThenInclude(m => m.Fraction);
         }
 
+        public async Task<List<long>> GetRanking(string rankingType, bool asc, int from = 0, int to = -1)
         {
             var cacheKey = $"{rankingType}|{asc}";
             List<long> result;
@@ -242,13 +243,18 @@ namespace LegionTDServerReborn.Controllers
                         default:
                             return new List<long>();
                     }
+                    var rank = await players.ToListAsync();
+                    _cache.Set(cacheKey, result = rank.Select(p => p.SteamId).ToList(), DateTimeOffset.Now.AddDays(1));
                 }
-
-
-                _cache.Set(cacheKey, result = await players.ToListAsync());
             }
-            return result;
+            
+            return to > 0 ? result.Skip(from).Take(to - from + 1).ToList() 
+                          : result.Skip(from).ToList();
         }
+
+
+
+
 
 
         private static class PostMethods
