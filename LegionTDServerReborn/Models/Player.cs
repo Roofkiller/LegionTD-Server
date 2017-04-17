@@ -30,6 +30,17 @@ namespace LegionTDServerReborn.Models
         public int PlayedDuels => MatchDatas.Where(m => !m.Match.IsTraining).Sum(m => m.WonDuels + m.LostDuels);
         public float DuelWinRate => (WonDuels / (float)PlayedDuels).NaNToZero();
         public long Experience => MatchDatas.Where(m => !m.Match.IsTraining).Sum(m => m.Experience);
+        //Cache for sorting
+        private long _cachedExperience = -1;
+        public long CachedExperience
+        {
+            get
+            {
+                if (_cachedExperience == -1)
+                    _cachedExperience = Experience;
+                return _cachedExperience;
+            }
+        }
         public long Kills => MatchDatas.Where(m => !m.Match.IsTraining).Sum(m => m.Kills);
         public long Leaks => MatchDatas.Where(m => !m.Match.IsTraining).Sum(m => m.Leaks);
         public long Sends => MatchDatas.Where(m => !m.Match.IsTraining).Sum(m => m.Sends);

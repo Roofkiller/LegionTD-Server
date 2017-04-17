@@ -28,7 +28,8 @@ namespace LegionTDServerReborn.Responses
                 Date = match.Date,
                 Won = playerData.Won,
                 RatingChange = playerData.RatingChange,
-                Duration = match.Duration
+                Duration = match.Duration,
+                Builder = playerData.Fraction.Name,
             };
 //            IsTraining = match.IsTraining;
 //            Date = match.Date;
