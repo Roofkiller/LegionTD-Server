@@ -8,9 +8,10 @@ using LegionTDServerReborn.Models;
 namespace LegionTDServerReborn.Migrations
 {
     [DbContext(typeof(LegionTdContext))]
-    partial class LegionTdContextModelSnapshot : ModelSnapshot
+    [Migration("20170504223847_addedRanking")]
+    partial class addedRanking
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
             modelBuilder
                 .HasAnnotation("ProductVersion", "1.1.1");
@@ -48,8 +49,6 @@ namespace LegionTDServerReborn.Migrations
                     b.Property<DateTime>("Date");
 
                     b.Property<float>("Duration");
-
-                    b.Property<bool>("IsTraining");
 
                     b.Property<int>("LastWave");
 
@@ -132,8 +131,6 @@ namespace LegionTDServerReborn.Migrations
                     b.HasKey("Type", "Ascending", "PlayerId");
 
                     b.HasIndex("PlayerId");
-
-                    b.HasIndex("Position");
 
                     b.ToTable("Rankings");
                 });

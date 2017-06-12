@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace LegionTDServerReborn.Migrations
 {
-    public partial class init : Migration
+    public partial class Init : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -13,6 +13,7 @@ namespace LegionTDServerReborn.Migrations
                 columns: table => new
                 {
                     Name = table.Column<string>(nullable: false)
+                        .Annotation("MySql:ValueGeneratedOnAdd", true)
                 },
                 constraints: table =>
                 {
@@ -24,7 +25,7 @@ namespace LegionTDServerReborn.Migrations
                 columns: table => new
                 {
                     MatchId = table.Column<int>(nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
+                        .Annotation("MySql:ValueGeneratedOnAdd", true),
                     Date = table.Column<DateTime>(nullable: false),
                     Duration = table.Column<float>(nullable: false),
                     LastWave = table.Column<int>(nullable: false),
@@ -50,7 +51,8 @@ namespace LegionTDServerReborn.Migrations
                 name: "Units",
                 columns: table => new
                 {
-                    Name = table.Column<string>(nullable: false),
+                    Name = table.Column<string>(nullable: false)
+                        .Annotation("MySql:ValueGeneratedOnAdd", true),
                     Experience = table.Column<int>(nullable: false),
                     FractionName = table.Column<string>(nullable: true),
                     Type = table.Column<int>(nullable: false)

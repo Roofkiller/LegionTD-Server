@@ -8,8 +8,8 @@ using LegionTDServerReborn.Models;
 namespace LegionTDServerReborn.Migrations
 {
     [DbContext(typeof(LegionTdContext))]
-    [Migration("20170411081534_init")]
-    partial class init
+    [Migration("20170504170842_Init")]
+    partial class Init
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {

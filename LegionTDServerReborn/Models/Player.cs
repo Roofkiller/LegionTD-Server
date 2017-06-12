@@ -10,12 +10,13 @@ namespace LegionTDServerReborn.Models
 {
     public class Player
     {
+        public const int DefaultRating = 2500;
         [Key, DatabaseGenerated(DatabaseGeneratedOption.None)]
         public long SteamId { get; set; }
         [InverseProperty("Player")]
         public List<PlayerMatchData> MatchDatas { get; set; }
-
-        public int Rating => 1000 + MatchDatas.Where(m => !m.Match.IsTraining).Sum(m => m.RatingChange);
+        
+        public int Rating => DefaultRating + MatchDatas.Sum(m => m.RatingChange);
         public float TimePlayed => MatchDatas.Where(m => !m.Match.IsTraining).Sum(m => m.Match.Duration);
         public long EarnedTangos => MatchDatas.Where(m => !m.Match.IsTraining).Sum(m => m.EarnedTangos);
         public float TangosPerMinute => (EarnedTangos / TimePlayed).NaNToZero();
@@ -52,7 +53,7 @@ namespace LegionTDServerReborn.Models
 
         public int GetRatingBefore(DateTime date)
         {
-            return 1000 + MatchDatas.Where(m => m.Match.Date < date).Sum(m => m.RatingChange);
+            return DefaultRating + MatchDatas.Where(m => m.Match.Date < date).Sum(m => m.RatingChange);
         }
 
         private const string KilledPrefix = "killed_";

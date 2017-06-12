@@ -4,8 +4,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using LegionTDServerReborn.ModelBinder;
 using LegionTDServerReborn.Models;
+using LegionTDServerReborn.Seed;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -38,8 +40,14 @@ namespace LegionTDServerReborn
             });
 //            services.AddMvc();
 
-            services.AddEntityFrameworkSqlite().AddDbContext<LegionTdContext>(options => options.UseSqlite("Filename=./legionTDServer.db"));
+            services.AddEntityFrameworkSqlite();
+//            services.AddDbContext<LegionTdSqliteContext>(options => options.UseSqlite("Filename=./legionTDServer.db"));
             services.AddMemoryCache();
+            services.AddDbContext<LegionTdContext>(
+                options => options.UseMySql(Configuration.GetConnectionString("MySQLConnection")));
+            services.Configure<GzipCompressionProviderOptions>(options => options.Level =
+                System.IO.Compression.CompressionLevel.Optimal);
+            services.AddResponseCompression();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -47,7 +55,13 @@ namespace LegionTDServerReborn
         {
             loggerFactory.AddConsole(Configuration.GetSection("Logging"));
             loggerFactory.AddDebug();
-            app.UseMvc();
+            app.UseMvc(routes =>
+            {
+                routes.MapRoute("default", "{controller=legiontd}/");
+            });
+            
+//            LegionTdContextMover.SetTraining();
+//            LegionTdContextMover.Seed();
         }
     }
 }

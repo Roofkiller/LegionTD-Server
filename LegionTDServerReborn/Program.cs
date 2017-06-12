@@ -18,6 +18,7 @@ namespace LegionTDServerReborn
                 .UseIISIntegration()
                 .UseStartup<Startup>()
                 .UseApplicationInsights()
+//                .UseUrls("http://*:5001")
                 .Build();
 
 
