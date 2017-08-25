@@ -63,7 +63,7 @@ namespace LegionTDServerReborn.Controllers
         public async Task<ActionResult> Get(string method, long? steamId, string rankingType, int? from, int? to,
             bool ascending, string steamIds)
         {
-            await CheckUpdateRankings();
+            // await CheckUpdateRankings();
             var rType = !string.IsNullOrEmpty(rankingType) && RankingTypeDict.ContainsKey(rankingType) ? RankingTypeDict[rankingType] : RankingTypes.Invalid;
             switch (method)
             {
@@ -127,30 +127,32 @@ namespace LegionTDServerReborn.Controllers
                 return Json(new InvalidRequestFailure());
             var playerCount = await GetPlayerCount();
             RankingTypes t = RankingTypes.Rating;
-            List<long> ranking;
+            List<Ranking> ranking;
             using (var db = new LegionTdContext())
             {
                 int lower = (from ?? 0);
                 int upper = (to + 1 ?? int.MaxValue);
-                ranking = await db.Rankings.Where(r => r.Ascending == asc 
+                ranking = (await db.Rankings.Where(r => r.Ascending == asc 
                                                     && r.Type == t
                                                     && r.Position <= upper 
-                                                    && r.Position >= lower).Select(r => r.PlayerId)
-                                            .ToListAsync();
+                                                    && r.Position >= lower)
+                                            .ToListAsync()).OrderBy(d => d.Position).ToList();
             }
-            var players = await GetPlayers(ranking);
-            var result = players.Select((p, i) => new PlayerRankingResponse(p, i)).ToList();
+            var result = await GetRankingData(ranking);
             var response = new RankingResponse {PlayerCount = playerCount, Ranking = result};
             return Json(response);
         }
 
-        private async Task<List<Player>> GetPlayers(List<long> steamIds)
+        private async Task<List<PlayerRankingResponse>> GetRankingData(List<Ranking> ranking)
         {
             using (var db = new LegionTdContext())
             {
-                List<Player> result = new List<Player>();
+                List<PlayerRankingResponse> result = new List<PlayerRankingResponse>();
                 var query = GetFullPlayerQueryable(db);
-                return await query.Where(p => steamIds.Contains(p.SteamId)).ToListAsync();
+                foreach(var r in ranking) {
+                    result.Add(new PlayerRankingResponse(await query.SingleAsync(p => p.SteamId == r.PlayerId), r.Position));
+                }
+                return result;
             }
         }
 
@@ -193,13 +195,11 @@ namespace LegionTDServerReborn.Controllers
                 if (value != RankingTypes.Rating) continue;
                 var key = value + "|" + true;
                 if (!_cache.TryGetValue(key, out object a))
-                    tasks.Add(UpdateRanking(value, true));
+                    await UpdateRanking(value, true);
                 key = value + "|" + false;
                 if (!_cache.TryGetValue(key, out object b))
-                    tasks.Add(UpdateRanking(value, false));
+                    await UpdateRanking(value, false);
             }
-            foreach (var task in tasks)
-                await task;
         }
 
         private async Task UpdateRanking(Models.RankingTypes type, bool asc)
@@ -208,8 +208,8 @@ namespace LegionTDServerReborn.Controllers
             _cache.Set(key, true, DateTimeOffset.Now.AddDays(1));
             using (var db = new LegionTdContext())
             {
-                db.Database.ExecuteSqlCommand("DELETE FROM Rankings WHERE Type = " + (int) type + " AND Ascending = " +
-                                              (asc ? 1 : 0));
+                db.Database.ExecuteSqlCommand($"DELETE FROM Rankings WHERE Type = {(int) type} AND Ascending = {(asc ? 1 : 0)}");
+                Console.WriteLine($"Cleared Ranking for {type} {asc}");
                 string sql;
                 string sqlSelects = "";
                 string sqlJoins = "JOIN Matches AS m \n" +
@@ -220,11 +220,11 @@ namespace LegionTDServerReborn.Controllers
                 {
                     case RankingTypes.EarnedTangos:
                         sqlSelects = ", SUM(EarnedTangos) AS Gold \n";
-                        sqlOrderBy = "ORDER BY Gold \n";
+                        sqlOrderBy = "ORDER BY Gold "+ (asc? "ASC" : "DESC") +" \n";
                         break;
                     case RankingTypes.EarnedGold:
                         sqlSelects = ", SUM(EarnedGold) AS Gold \n";
-                        sqlOrderBy = "ORDER BY Gold \n";
+                        sqlOrderBy = "ORDER BY Gold "+ (asc? "ASC" : "DESC") +" \n";
                         break;
                     case RankingTypes.Rating:
                     default:
@@ -246,15 +246,13 @@ namespace LegionTDServerReborn.Controllers
                 }
                 sql = "INSERT INTO Rankings \n" +
                     "(Type, Ascending, PlayerId, Position) \n" +
-                    "SELECT @t := @type, @a := @asc, SteamId, @rownum := @rownum + 1 AS position\n" +
-                    "FROM (SELECT SteamId \n" +
+                    "SELECT @t := @type, @a := @asc, PlayerId, @rownum := @rownum + 1 AS position\n" +
+                    "FROM (SELECT PlayerId \n" +
                     sqlSelects +
-                    "FROM Players AS p \n" +
-                    "JOIN PlayerMatchDatas AS pm \n" +
-                    "ON p.SteamId = pm.PlayerId \n" +
+                    "FROM PlayerMatchDatas AS pm \n" +
                     sqlJoins +
                     sqlWheres +
-                    "GROUP BY p.SteamId \n" +
+                    "GROUP BY pm.PlayerId \n" +
                     sqlOrderBy +
                     ") AS pr, \n" +
                     "(SELECT @rownum := 0) AS r \n";
@@ -262,7 +260,7 @@ namespace LegionTDServerReborn.Controllers
                     CancellationToken.None,
                     CreateParameter("@type", DbType.Int32, type),
                     CreateParameter("@asc", DbType.Boolean, asc));
-                Console.WriteLine("Updated ranking for " + type + " " + asc);
+                Console.WriteLine($"Updated ranking for {type} {asc}");
             }
         }
 
