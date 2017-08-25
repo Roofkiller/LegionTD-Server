@@ -12,7 +12,6 @@ namespace LegionTDServerReborn.Models
         public int MatchId { get; set; }
         public DateTime Date { get; set; }
         public bool IsTraining { get; set; }
-//        public bool IsTraining => PlayerDatas.All(p => p.Team == Winner) || PlayerDatas.All(p => p.Team != Winner);
         public int Winner { get; set; }
         public int LastWave { get; set; }
         public float Duration { get; set; }

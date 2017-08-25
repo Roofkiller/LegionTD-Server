@@ -43,6 +43,7 @@ namespace LegionTDServerReborn
             services.AddEntityFrameworkSqlite();
 //            services.AddDbContext<LegionTdSqliteContext>(options => options.UseSqlite("Filename=./legionTDServer.db"));
             services.AddMemoryCache();
+            LegionTdContext.ConnectionString = Configuration.GetConnectionString("MySQLConnection");
             services.AddDbContext<LegionTdContext>(
                 options => options.UseMySql(Configuration.GetConnectionString("MySQLConnection")));
             services.Configure<GzipCompressionProviderOptions>(options => options.Level =

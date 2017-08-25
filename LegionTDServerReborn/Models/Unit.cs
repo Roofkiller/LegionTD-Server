@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -23,7 +24,9 @@ namespace LegionTDServerReborn.Models
         public string Name { get; set; }
         public int Experience { get; set; }
         public UnitType Type { get; set; }
+        [ForeignKey("FractionName")]
         public Fraction Fraction { get; set; }
+        public string FractionName {get; set;}
 
         public void SetTypeByName()
         {
@@ -35,6 +38,8 @@ namespace LegionTDServerReborn.Models
                 Type = UnitType.IncomeUnit;
             else if (Name.EndsWith("_boss"))
                 Type = UnitType.Boss;
+            else if (Name.EndsWith("_king"))
+                Type = UnitType.King;
             else
                 Type = UnitType.Other;
         }
@@ -52,6 +57,8 @@ namespace LegionTDServerReborn.Models
                 return "income";
             if (Name.EndsWith("_boss"))
                 return "boss";
+            if (Name.EndsWith("_king"))
+                return "king";
             return "other";
         }
     }

@@ -15,7 +15,6 @@ namespace LegionTDServerReborn.Models
         public long SteamId { get; set; }
         [InverseProperty("Player")]
         public List<PlayerMatchData> MatchDatas { get; set; }
-        
         public int Rating => DefaultRating + MatchDatas.Sum(m => m.RatingChange);
         public float TimePlayed => MatchDatas.Where(m => !m.Match.IsTraining).Sum(m => m.Match.Duration);
         public long EarnedTangos => MatchDatas.Where(m => !m.Match.IsTraining).Sum(m => m.EarnedTangos);
@@ -31,17 +30,6 @@ namespace LegionTDServerReborn.Models
         public int PlayedDuels => MatchDatas.Where(m => !m.Match.IsTraining).Sum(m => m.WonDuels + m.LostDuels);
         public float DuelWinRate => (WonDuels / (float)PlayedDuels).NaNToZero();
         public long Experience => MatchDatas.Where(m => !m.Match.IsTraining).Sum(m => m.Experience);
-        //Cache for sorting
-        private long _cachedExperience = -1;
-        public long CachedExperience
-        {
-            get
-            {
-                if (_cachedExperience == -1)
-                    _cachedExperience = Experience;
-                return _cachedExperience;
-            }
-        }
         public long Kills => MatchDatas.Where(m => !m.Match.IsTraining).Sum(m => m.Kills);
         public long Leaks => MatchDatas.Where(m => !m.Match.IsTraining).Sum(m => m.Leaks);
         public long Sends => MatchDatas.Where(m => !m.Match.IsTraining).Sum(m => m.Sends);
@@ -56,27 +44,27 @@ namespace LegionTDServerReborn.Models
             return DefaultRating + MatchDatas.Where(m => m.Match.Date < date).Sum(m => m.RatingChange);
         }
 
-        private const string KilledPrefix = "killed_";
-        public Dictionary<string, long> FractionKills
-        {
-            get
-            {
-                Dictionary<string, long> result = new Dictionary<string, long>();
-                foreach (var matchData in MatchDatas.Where(m => !m.Match.IsTraining))
-                {
-                    foreach (var unitData in matchData.UnitDatas)
-                    {
-                        string key = KilledPrefix + unitData.Unit.Fraction.Name;
-                        if (!result.ContainsKey(key))
-                            result[key] = unitData.Killed;
-                        else
-                            result[key] += unitData.Killed;
-                    }
-                }
-                return result;
-            }
-        }
+        // public Dictionary<string, long> FractionKills
+        // {
+        //     get
+        //     {
+        //         Dictionary<string, long> result = new Dictionary<string, long>();
+        //         // foreach (var matchData in MatchDatas.Where(m => !m.Match.IsTraining))
+        //         // {
+        //         //     foreach (var unitData in matchData.UnitDatas)
+        //         //     {
+        //         //         string key = KilledPrefix + unitData.Unit.Fraction.Name;
+        //         //         if (!result.ContainsKey(key))
+        //         //             result[key] = unitData.Killed;
+        //         //         else
+        //         //             result[key] += unitData.Killed;
+        //         //     }
+        //         // }
+        //         return result;
+        //     }
+        // }
 
+        private const string KilledPrefix = "killed_";
         private const string PlayedPrefix = "played_";
         public Dictionary<string, int> PlayedFractions
         {
@@ -113,10 +101,14 @@ namespace LegionTDServerReborn.Models
                 ["tangos_per_minute"] = TangosPerMinute.ToString(),
                 ["time_played"] = TimePlayed.ToString()
             };
+            // foreach (var data in FractionDatas) {
+            //     result[KilledPrefix + data.FractionName] = data.Killed.ToString();
+            //     result[PlayedPrefix + data.FractionName] = data.Played.ToString();
+            // }
             foreach (var pair in PlayedFractions)
                 result[pair.Key] = pair.Value.ToString();
-            foreach (var pair in FractionKills)
-                result[pair.Key] = pair.Value.ToString();
+            // foreach (var pair in FractionKills)
+            //     result[pair.Key] = pair.Value.ToString();
             return result;
         }
     }

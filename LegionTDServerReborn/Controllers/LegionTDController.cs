@@ -48,19 +48,6 @@ namespace LegionTDServerReborn.Controllers
             public const string MatchInfo = "match_info";
         }
 
-        private static class RankingTypesO
-        {
-            public const string Kills = "kills";
-            public const string WonGames = "won_games";
-            public const string WinRate = "win_rate";
-            public const string Experience = "experience";
-            public const string EarnedTangos = "earned_tangos";
-            public const string DuelWinRate = "duel_win_rate";
-            public const string Rating = "rating";
-            public const string TangosPerMinute = "tangos_per_minute";
-            public const string GoldPerMinute = "gold_per_minute";
-        }
-
         private static readonly Dictionary<string, RankingTypes> RankingTypeDict = new Dictionary<string, RankingTypes>
         {
             ["won_games"] = RankingTypes.WonGames,
@@ -113,18 +100,6 @@ namespace LegionTDServerReborn.Controllers
         {
             if (!steamId.HasValue)
                 return Json(new MissingArgumentFailure());
-//            Player player = await _db.Players.FindAsync(steamId.Value);
-//            await _db.Entry(player).Collection(p => p.MatchDatas).LoadAsync();
-//            foreach (var matchData in player.MatchDatas)
-//            {
-//                await _db.Entry(matchData).Collection(m => m.UnitDatas).LoadAsync();
-//                await _db.Entry(matchData).Reference(m => m.Match).LoadAsync();
-//                await _db.Entry(matchData.Match).Collection(m => m.PlayerDatas).LoadAsync();
-//                foreach (var unitData in matchData.UnitDatas)
-//                {
-//                    await _db.Entry(unitData).Reference(u => u.Unit).LoadAsync();
-//                }
-//            }
             Player player = await GetPlayer(steamId.Value);
             return player == null ? Json(new NotFoundFailure()) : Json(new PlayerResponse(player));
         }
@@ -133,9 +108,6 @@ namespace LegionTDServerReborn.Controllers
         {
             if (!steamId.HasValue || rankingType == RankingTypes.Invalid)
                 return Json(new InvalidRequestFailure());
-//            var player = await GetPlayer(steamId.Value);
-            //            var ranking = await GetRanking(rankingType, asc);
-            //            var rank = await GetPositionInRanking(ranking, player);
             int rank;
             using (var db = new LegionTdContext())
             {
@@ -145,35 +117,8 @@ namespace LegionTDServerReborn.Controllers
             {
                 Rank = rank,
                 SteamId = steamId,
-                Attribute = rankingType
+                Attribute = RankingTypeDict.FirstOrDefault(pair => pair.Value == rankingType).Key
             });
-        }
-
-        private async Task<ActionResult> GetPlayerPositions(string steamIds, string rankingType,
-            bool asc)
-        {
-            if (string.IsNullOrEmpty(steamIds) || string.IsNullOrEmpty(rankingType))
-                return Json(new InvalidRequestFailure());
-            return await GetPlayerPositions(JsonConvert.DeserializeObject<List<long>>(steamIds), rankingType, asc);
-        }
-
-        private async Task<ActionResult> GetPlayerPositions(List<long> steamIds, string rankingType,
-            bool asc)
-        {
-            var ranking = await GetRanking(rankingType, asc);
-            List<object> result = new List<object>();
-            var players = await GetPlayers(ranking);
-            foreach (var player in players)
-            {
-                var rank = await GetPositionInRanking(ranking, player);
-                result.Add(new
-                {
-                    Rank = rank,
-                    SteamId = player.SteamId,
-                    Attribute = rankingType,
-                });
-            }
-            return Json(result);
         }
 
         public async Task<JsonResult> GetRankingFromTo(RankingTypes rankingType, int? from, int? to, bool asc)
@@ -181,33 +126,31 @@ namespace LegionTDServerReborn.Controllers
             if (rankingType == RankingTypes.Invalid)
                 return Json(new InvalidRequestFailure());
             var playerCount = await GetPlayerCount();
-            Models.RankingTypes t = Models.RankingTypes.Rating;
+            RankingTypes t = RankingTypes.Rating;
             List<long> ranking;
             using (var db = new LegionTdContext())
             {
-                ranking = await db.Rankings.Where(r => r.Ascending == asc && r.Type == t
-                                                    && r.Position <= (to + 1 ?? int.MaxValue) 
-                                                    && r.Position >= (from ?? 0)).Select(r => r.PlayerId)
+                int lower = (from ?? 0);
+                int upper = (to + 1 ?? int.MaxValue);
+                ranking = await db.Rankings.Where(r => r.Ascending == asc 
+                                                    && r.Type == t
+                                                    && r.Position <= upper 
+                                                    && r.Position >= lower).Select(r => r.PlayerId)
                                             .ToListAsync();
             }
-//          var ranking = await GetRanking(rankingType, asc, from ?? 0, to ?? -1);
             var players = await GetPlayers(ranking);
             var result = players.Select((p, i) => new PlayerRankingResponse(p, i)).ToList();
             var response = new RankingResponse {PlayerCount = playerCount, Ranking = result};
             return Json(response);
         }
 
-        private async Task<List<Player>> GetPlayers(IEnumerable<long> steamIds)
+        private async Task<List<Player>> GetPlayers(List<long> steamIds)
         {
             using (var db = new LegionTdContext())
             {
                 List<Player> result = new List<Player>();
                 var query = GetFullPlayerQueryable(db);
-                foreach (var steamId in steamIds)
-                {
-                    result.Add(await query.FirstOrDefaultAsync(p => p.SteamId == steamId));
-                }
-                return result;
+                return await query.Where(p => steamIds.Contains(p.SteamId)).ToListAsync();
             }
         }
 
@@ -217,16 +160,6 @@ namespace LegionTDServerReborn.Controllers
             {
                 return await GetFullPlayerQueryable(db).FirstOrDefaultAsync(p => p.SteamId == steamId);
             }
-        }
-
-        private async Task<int> GetPositionInRanking(List<long> ranking, Player player)
-        {
-            if (player == null)
-                return await GetPlayerCount();
-            var result = ranking.FindIndex(p => p == player.SteamId);
-            if (result == -1)
-                result = await GetPlayerCount();
-            return result;
         }
 
         public async Task<int> GetPlayerCount()
@@ -245,100 +178,11 @@ namespace LegionTDServerReborn.Controllers
         {
             return context.Players
                 .Include(p => p.MatchDatas)
-                .ThenInclude(m => m.UnitDatas)
-                .ThenInclude(u => u.Unit.Fraction)
-                .Include(p => p.MatchDatas)
-                .ThenInclude(m => m.Match.Duels)
-                .Include(p => p.MatchDatas)
                 .ThenInclude(m => m.Fraction)
+                .Include(p => p.MatchDatas)
+                .ThenInclude(m => m.Match)
+                // .Include(p => p.FractionDatas)
                 .AsNoTracking();
-        }
-
-        private async Task<List<long>> GetRanking(string rankingType, bool asc, int from = 0, int to = -1)
-        {
-            var cacheKey = $"{rankingType}|{asc}";
-            List<long> result;
-            if (!_cache.TryGetValue(cacheKey, out result))
-            {
-                using (var db = new LegionTdContext())
-                {
-                    IQueryable<Player> players = db.Players;
-                    switch (rankingType)
-                    {
-                        case RankingTypesO.Experience:
-                            return new List<long>();
-//                            players = db.Players.Include(p => p.MatchDatas)
-//                                .ThenInclude(m => m.Match)
-//                                .ThenInclude(m => m.PlayerDatas)
-//                                .Include(m => m.MatchDatas)
-//                                .ThenInclude(m => m.UnitDatas)
-//                                .ThenInclude(u => u.Unit)
-//                                .OrderBy(asc, p => p.CachedExperience);
-//                            break;
-                        case RankingTypesO.EarnedTangos:
-                            players = db.Players.Include(p => p.MatchDatas)
-                                .ThenInclude(m => m.Match)
-                                .ThenInclude(m => m.PlayerDatas)
-                                .OrderBy(asc, p => p.EarnedTangos);
-                            break;
-                        case RankingTypesO.Kills:
-                            return new List<long>();
-//                            players = db.Players.Include(p => p.MatchDatas)
-//                                .ThenInclude(m => m.Match)
-//                                .ThenInclude(m => m.PlayerDatas)
-//                                .Include(m => m.MatchDatas)
-//                                .ThenInclude(m => m.UnitDatas)
-//                                .OrderBy(asc, p => p.Kills);
-//                            break;
-                        case RankingTypesO.WinRate:
-                            players = db.Players.Include(p => p.MatchDatas)
-                                .ThenInclude(m => m.Match)
-                                .ThenInclude(m => m.PlayerDatas)
-                                .Include(m => m.MatchDatas)
-                                .ThenInclude(m => m.Match.Duels)
-                                .OrderBy(asc, p => p.WinRate);
-                            break;
-                        case RankingTypesO.DuelWinRate:
-                            players = db.Players.Include(p => p.MatchDatas)
-                                .ThenInclude(m => m.Match)
-                                .ThenInclude(m => m.PlayerDatas)
-                                .Include(m => m.MatchDatas)
-                                .ThenInclude(m => m.Match.Duels)
-                                .OrderBy(asc, p => p.WonGames);
-                            break;
-                        case RankingTypesO.WonGames:
-                            players = db.Players.Include(p => p.MatchDatas)
-                                .ThenInclude(m => m.Match)
-                                .ThenInclude(m => m.PlayerDatas)
-                                .OrderBy(asc, p => p.WonGames);
-                            break;
-                        case RankingTypesO.Rating:
-                            players = db.Players.Include(p => p.MatchDatas)
-                                .OrderBy(asc, p => p.Rating);
-                            break;
-                        case RankingTypesO.TangosPerMinute:
-                            players = db.Players.Include(p => p.MatchDatas)
-                                .ThenInclude(m => m.Match)
-                                .ThenInclude(m => m.PlayerDatas)
-                                .OrderBy(asc, p => p.TangosPerMinute);
-                            break;
-                        case RankingTypesO.GoldPerMinute:
-                            players = db.Players.Include(p => p.MatchDatas)
-                                .ThenInclude(m => m.Match)
-                                .ThenInclude(m => m.PlayerDatas)
-                                .OrderBy(asc, p => p.GoldPerMinute);
-                            break;
-                        default:
-                            return new List<long>();
-                    }
-                    var rank = await players.ToListAsync();
-                    _cache.Set(cacheKey, result = rank.Select(p => p.SteamId).ToList(), DateTimeOffset.Now.AddDays(1));
-                }
-            }
-
-            return to > 0
-                ? result.Skip(from).Take(to - from + 1).ToList()
-                : result.Skip(from).ToList();
         }
 
         private async Task CheckUpdateRankings()
@@ -366,7 +210,6 @@ namespace LegionTDServerReborn.Controllers
             {
                 db.Database.ExecuteSqlCommand("DELETE FROM Rankings WHERE Type = " + (int) type + " AND Ascending = " +
                                               (asc ? 1 : 0));
-//                IQueryable<Player> ranking = db.Players.AsNoTracking();
                 string sql;
                 string sqlSelects = "";
                 string sqlJoins = "JOIN Matches AS m \n" +
@@ -375,35 +218,10 @@ namespace LegionTDServerReborn.Controllers
                 string sqlWheres = "WHERE m.IsTraining = FALSE \n";
                 switch (type)
                 {
-//                    case RankingTypes.DuelWinRate:
-//                        ranking = ranking.Include(p => p.MatchDatas)
-//                            .ThenInclude(m => m.Match)
-//                            .Include(m => m.MatchDatas)
-//                            .ThenInclude(m => m.Match.Duels)
-//                            .OrderBy(asc, p => p.DuelWinRate);
-//                        break;
                     case RankingTypes.EarnedTangos:
                         sqlSelects = ", SUM(EarnedTangos) AS Gold \n";
                         sqlOrderBy = "ORDER BY Gold \n";
                         break;
-//                    case RankingTypes.GoldPerMinute:
-//                        ranking = ranking.Include(p => p.MatchDatas)
-//                            .ThenInclude(m => m.Match)
-//                            .OrderBy(asc, p => p.GoldPerMinute);
-//                        break;
-//                    case RankingTypes.TangosPerMinute:
-//                        ranking = ranking.Include(p => p.MatchDatas)
-//                            .ThenInclude(m => m.Match)
-//                            .OrderBy(asc, p => p.TangosPerMinute);
-//                        break;
-//                    case RankingTypes.WinRate:
-//                        ranking = ranking.Include(p => p.MatchDatas)
-//                            .ThenInclude(m => m.Match)
-//                            .OrderBy(asc, p => p.WinRate);
-//                        sqlJoins = "JOIN Duels AS d \n" +
-//                                   "ON d.MatchId = m.MatchId";
-//                        sqlSelects = "";
-//                        break;
                     case RankingTypes.EarnedGold:
                         sqlSelects = ", SUM(EarnedGold) AS Gold \n";
                         sqlOrderBy = "ORDER BY Gold \n";
@@ -551,10 +369,43 @@ namespace LegionTDServerReborn.Controllers
                 playerMatchDatas.Add(playerMatchData);
             }
             await DecideIsTraining(match);
+            // await UpdateFractionDatas(match);
             await ModifyRatings(playerMatchDatas, match);
 
             return Json(new {Success = true});
         }
+
+        // private async Task UpdateFractionDatas(Match match) {
+        //     using (var db = new LegionTdContext()) {
+        //         var m = await db.Matches.Include(ma => ma.PlayerDatas)
+        //                         .ThenInclude(p => p.UnitDatas)
+        //                         .Include(ma => ma.Duels)
+        //                         .SingleAsync(ma => ma.MatchId == match.MatchId);
+        //         //Return if this match is a training match
+        //         if (m.IsTraining) return;
+        //         foreach (var player in m.PlayerDatas) {
+        //             //Increasing Played Counter
+        //             var data = await GetOrCreateFractionData(player.PlayerId, player.FractionName);
+        //             data.Played++;
+
+
+        //             //Updating FractionData
+        //             Dictionary<string, FractionData> datas = new Dictionary<string, FractionData>();
+        //             foreach (var unitData in player.UnitDatas) {
+        //                 if (unitData.Killed > 0) {
+        //                     string fName = unitData.Unit.FractionName;
+        //                     if (!datas.ContainsKey(fName)) {
+        //                         datas[fName] = await GetOrCreateFractionData(player.PlayerId, fName);
+        //                     }
+        //                     datas[fName].Killed += unitData.Killed;
+        //                 }
+        //             }
+        //             db.Update(data);
+        //             db.UpdateRange(datas.Values);
+        //         }
+        //         await db.SaveChangesAsync();
+        //     }
+        // }
 
         private async Task DecideIsTraining(Match match)
         {
@@ -567,7 +418,7 @@ namespace LegionTDServerReborn.Controllers
                 await db.SaveChangesAsync();
             }
         }
-
+        
         private async Task ModifyRatings(List<PlayerMatchData> playerMatchDatas, Match match)
         {
             using (var db = new LegionTdContext())
@@ -647,10 +498,44 @@ namespace LegionTDServerReborn.Controllers
                 result.ForEach(r => db.Entry(r.Unit).State = EntityState.Modified);
                 db.Entry(playerMatchData).State = EntityState.Modified;
                 db.PlayerUnitRelations.AddRange(result);
+                
+                //Calculating Match statistics
+                var p = await db.PlayerMatchDatas
+                    .Include(pd => pd.UnitDatas)
+                    .ThenInclude(r => r.Unit)
+                    .Include(pd => pd.Match)
+                    .ThenInclude(pd => pd.Duels)
+                    .SingleAsync(pd => pd.MatchId == playerMatchData.MatchId && pd.PlayerId == playerMatchData.PlayerId);
+                p.CalculateStats();
+                db.Update(p);
+
                 await db.SaveChangesAsync();
             }
             return result;
         }
+
+        // private async Task<FractionData> GetOrCreateFractionData(long steamId, int matchId, string fractionName)
+        // {
+        //     using (var db = new LegionTdContext())
+        //     {
+        //         FractionData data = await db.FractionDatas.FindAsync(steamId, fractionName);
+        //         if (data == null)
+        //         {
+        //             data = new FractionData
+        //             {
+        //                 Player = await GetOrCreatePlayer(steamId),
+        //                 Fraction = await GetOrCreateFraction(fractionName),
+        //                 Killed = 0,
+        //                 Played = 0
+        //             };
+        //             db.Update(data.Player);
+        //             db.Update(data.Fraction);
+        //             db.Add(data);
+        //             await db.SaveChangesAsync();
+        //         }
+        //         return data;
+        //     }
+        // }
 
         private async Task<Unit> GetOrCreateUnit(string unitName)
         {
@@ -709,6 +594,7 @@ namespace LegionTDServerReborn.Controllers
                 db.Entry(match).State = EntityState.Modified;
                 db.Entry(result.Fraction).State = EntityState.Modified;
                 db.PlayerMatchDatas.Add(result);
+
                 await db.SaveChangesAsync();
                 return result;
             }

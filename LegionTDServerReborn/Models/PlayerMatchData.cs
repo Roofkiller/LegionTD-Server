@@ -22,20 +22,33 @@ namespace LegionTDServerReborn.Models
 
         [InverseProperty("PlayerMatch")]
         public List<PlayerUnitRelation> UnitDatas { get; set; }
-
+        [InverseProperty("PlayerMatch")]
+        public List<FractionData> FractionDatas {get;set;}
         public int RatingChange { get; set; }
         public int EarnedGold { get; set; }
         public int EarnedTangos { get; set; }
+        [ForeignKey("FractionName")]
         public Fraction Fraction { get; set; }
-        
-        public bool Won => Match.Winner == Team && !Abandoned;
-        public int WonDuels => Match.Duels.Count(d => d.Winner == Team);
-        public int LostDuels => Match.Duels.Count(d => d.Winner != Team);
-        public long Experience => UnitDatas.Sum(u => u.Killed * u.Unit.Experience);
-        public long Kills => UnitDatas.Sum(u => u.Killed);
-        public long Leaks => UnitDatas.Sum(u => u.Leaked);
-        public long Builds => UnitDatas.Sum(u => u.Build);
-        public long Sends => UnitDatas.Sum(u => u.Send);
+        public string FractionName {get; set;}        
+        public bool Won { get; set; }
+        public int WonDuels { get; set; }
+        public int LostDuels { get; set; }
+        public int Experience { get; set; }
+        public int Kills { get; set; }
+        public int Leaks { get; set; }
+        public int Builds { get; set; }
+        public int Sends { get; set; }
+
+        public void CalculateStats() {
+            Won = Match.Winner == Team && !Abandoned;
+            WonDuels = Match.Duels.Count(d => d.Winner == Team);
+            LostDuels = Match.Duels.Count(d => d.Winner != Team);
+            Experience = UnitDatas.Sum(u => u.Killed * u.Unit.Experience);
+            Kills = UnitDatas.Sum(u => u.Killed);
+            Leaks = UnitDatas.Sum(u => u.Leaked);
+            Builds = UnitDatas.Sum(u => u.Build);
+            Sends = UnitDatas.Sum(u => u.Send);
+        }
 
         public int CalculateRatingChange()
         {

@@ -8,9 +8,10 @@ using LegionTDServerReborn.Models;
 namespace LegionTDServerReborn.Migrations
 {
     [DbContext(typeof(LegionTdContext))]
-    partial class LegionTdContextModelSnapshot : ModelSnapshot
+    [Migration("20170824134203_update")]
+    partial class update
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
             modelBuilder
                 .HasAnnotation("ProductVersion", "1.1.1");
@@ -38,23 +39,6 @@ namespace LegionTDServerReborn.Migrations
                     b.HasKey("Name");
 
                     b.ToTable("Fractions");
-                });
-
-            modelBuilder.Entity("LegionTDServerReborn.Models.FractionData", b =>
-                {
-                    b.Property<long>("PlayerId");
-
-                    b.Property<string>("FractionName");
-
-                    b.Property<long>("Killed");
-
-                    b.Property<long>("Played");
-
-                    b.HasKey("PlayerId", "FractionName");
-
-                    b.HasIndex("FractionName");
-
-                    b.ToTable("FractionDatas");
                 });
 
             modelBuilder.Entity("LegionTDServerReborn.Models.Match", b =>
@@ -194,19 +178,6 @@ namespace LegionTDServerReborn.Migrations
                     b.HasOne("LegionTDServerReborn.Models.Match", "Match")
                         .WithMany("Duels")
                         .HasForeignKey("MatchId")
-                        .OnDelete(DeleteBehavior.Cascade);
-                });
-
-            modelBuilder.Entity("LegionTDServerReborn.Models.FractionData", b =>
-                {
-                    b.HasOne("LegionTDServerReborn.Models.Fraction", "Fraction")
-                        .WithMany()
-                        .HasForeignKey("FractionName")
-                        .OnDelete(DeleteBehavior.Cascade);
-
-                    b.HasOne("LegionTDServerReborn.Models.Player", "Player")
-                        .WithMany("FractionDatas")
-                        .HasForeignKey("PlayerId")
                         .OnDelete(DeleteBehavior.Cascade);
                 });
 
