@@ -150,7 +150,7 @@ namespace LegionTDServerReborn.Controllers
                 List<PlayerRankingResponse> result = new List<PlayerRankingResponse>();
                 var query = GetFullPlayerQueryable(db);
                 foreach(var r in ranking) {
-                    result.Add(new PlayerRankingResponse(await query.SingleAsync(p => p.SteamId == r.PlayerId), r.Position));
+                    result.Add(new PlayerRankingResponse(await query.SingleAsync(p => p.SteamId == r.PlayerId), r.Position - 1));
                 }
                 return result;
             }
