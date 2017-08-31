@@ -1,0 +1,155 @@
+@page "{matchId:int}"
+@using LegionTDServerReborn.Models
+@using LegionTDServerReborn.Extension
+@using Microsoft.AspNetCore.Html
+@model MatchModel
+@{
+    ViewData["Title"] = "Match #" + @Model.MatchId;
+}
+
+<div class='match-header container'>
+    <div class='col-lg-3 col-md-4 match-title'>
+        <span class='match-title'>Match #@Model.MatchId</span>
+    </div>
+    <div class='col-lg-9 col-md-8 col-sm-12 col-xs-12' style="">
+        <div class='container-fluid' id='match_info' style="">
+            @{
+                var data = new Dictionary<string, string>();
+                data["Date"] = @Model.Match.GetFormattedDate();
+                data["Duration"] = @Model.Match.GetFormattedTime();
+                data["Winner"] = @Model.Match.Winner == 2 ? "<span class='radiant'>Radiant</span>" : "<span class='dire'>Dire</span>";
+                data["Last Wave"] = @Model.Match.LastWave.ToString();
+
+                foreach(var pair in data) {
+                    <div class='col-md-3 col-sm-3 col-xs-6 match-info'>
+                        <p class='match-info-title'>@pair.Key</p>
+                        <p class='match-info-value'>@Html.Raw(pair.Value)</p>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+
+@{
+    Func<PlayerMatchData, IHtmlContent> printPlayer = 
+        @<tr>
+            <td>
+                <a href='/Player/@item.PlayerId'>
+                    <span>
+                        <img src='@Model.Players[item.PlayerId].Avatar'>
+                    </span>
+                    @Model.Players[item.PlayerId].PersonaName
+                </a>
+            </td>
+            <td>
+                @item.Abandoned
+            </td>
+            <td>
+                @if (item.RatingChange < 0) {
+                    <span class='dire'>@item.RatingChange</span>
+                } else {
+                    <span class='radiant'>&nbsp;@item.RatingChange</span>
+                }
+            </td>
+            <td>
+                @item.FractionName
+            </td>
+            <td>
+                @item.Experience
+            </td>
+            <td>
+                @item.Kills
+            </td>
+            <td>
+                @item.Leaks
+            </td>
+            <td>
+                @item.Builds
+            </td>
+        </tr>;
+}        
+<h3 class='radiant'>Radiant</h3>
+
+<div class='table-responsive'>
+    <table class='match-player-table table table-responsive table-striped table-hover'>
+        <col width="20%"><col width="10%"><col width="10%"><col width="15%"><col width="15%"><col width="10%"><col width="10%"><col width="10%">
+        <thead>
+            <td>
+                Player
+            </td>
+            <td>
+                Abandoned
+            </td>
+            <td>
+                Rating
+            </td>
+            <td>
+                Builder
+            </td>
+            <td>
+                Experience
+            </td>
+            <td>
+                Kills
+            </td>
+            <td>
+                Leaks
+            </td>
+            <td>
+                Builds
+            </td>
+        </thead>
+        <tbody>
+            @{
+                var radiantPlayers = @Model.Match.PlayerDatas.Where(p => p.Team == 2);
+                foreach(var player in @radiantPlayers) {
+                    @printPlayer(player)
+                }
+            }
+        </tbody>
+    </table>
+</div>
+
+<h3 class='dire'>Dire</h3>
+
+<div class='table-responsive'>
+    <table class='match-player-table table table-responsive table-striped table-hover'>
+        <col width="20%"><col width="10%"><col width="10%"><col width="15%"><col width="15%"><col width="10%"><col width="10%"><col width="10%">
+        <thead>
+            <td>
+                Player
+            </td>
+            <td>
+                Abandoned
+            </td>
+            <td>
+                Rating
+            </td>
+            <td>
+                Builder
+            </td>
+            <td>
+                Experience
+            </td>
+            <td>
+                Kills
+            </td>
+            <td>
+                Leaks
+            </td>
+            <td>
+                Builds
+            </td>
+        </thead>
+        <tbody>
+            @{
+                var direPlayers = @Model.Match.PlayerDatas.Where(p => p.Team == 3);
+                foreach(var player in @direPlayers) {
+                    @printPlayer(player)
+                }
+            }
+        </tbody>
+    </table>
+</div>

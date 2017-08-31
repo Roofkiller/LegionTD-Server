@@ -4,16 +4,17 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 namespace LegionTDServerReborn.Models
 {
     public class PlayerMatchData
     {
         public long PlayerId { get; set; }
-        [ForeignKey("PlayerId")]
+        [ForeignKey("PlayerId"), JsonIgnore]
         public Player Player { get; set; }
         public int MatchId { get; set; }
-        [ForeignKey("MatchId")]
+        [ForeignKey("MatchId"), JsonIgnore]
         public Match Match { get; set; }
 
         public int Team { get; set; } 

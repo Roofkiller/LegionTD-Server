@@ -39,6 +39,8 @@ namespace LegionTDServerReborn
                 config.ModelBinderProviders.Insert(0, new InvariantFloatModelBinderProvider());
             });
 
+            services.AddSingleton<IConfiguration>(Configuration);
+
             services.AddEntityFrameworkSqlite();
             services.AddMemoryCache();
             LegionTdContext.ConnectionString = Configuration.GetConnectionString("MySQLConnection");

@@ -4,13 +4,14 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 namespace LegionTDServerReborn.Models
 {
     public class Duel
     {
         public int MatchId { get; set; }
-        [ForeignKey("MatchId")]
+        [ForeignKey("MatchId"), JsonIgnore]
         public Match Match { get; set; }
         public int Order { get; set; }
         public int Winner { get; set; }

@@ -62,7 +62,7 @@ namespace LegionTDServerReborn.Controllers
 
         [HttpGet]
         public async Task<ActionResult> Get(string method, long? steamId, string rankingType, int? from, int? to,
-            bool ascending, string steamIds)
+            bool ascending, string steamIds, int? matchId)
         {
             // CheckUpdateRankings();
             var rType = !string.IsNullOrEmpty(rankingType) && RankingTypeDict.ContainsKey(rankingType) ? RankingTypeDict[rankingType] : RankingTypes.Invalid;
@@ -79,6 +79,7 @@ namespace LegionTDServerReborn.Controllers
                 case GetMethods.MatchHistory:
                     return await GetMatchHistory(steamId, from, to);
                 case GetMethods.MatchInfo:
+                    return await GetMatchInfo(matchId);
                     break;
                 case GetMethods.LastMatches:
                     return await GetLastMatches(from, to);
@@ -86,6 +87,16 @@ namespace LegionTDServerReborn.Controllers
                     break;
             }
             return Json(new InvalidRequestFailure());
+        }
+
+        public async Task<ActionResult> GetMatchInfo(int? matchId) {
+            if (!matchId.HasValue) {
+                return Json(new MissingArgumentFailure());
+            }
+            using (var db = new LegionTdContext()) {
+                return Json(await db.Matches.Include(m => m.Duels)
+                    .Include(m => m.PlayerDatas).SingleOrDefaultAsync(m => m.MatchId == matchId.Value));
+            }
         }
 
         public async Task<ActionResult> GetLastMatches(int? from, int? to) {

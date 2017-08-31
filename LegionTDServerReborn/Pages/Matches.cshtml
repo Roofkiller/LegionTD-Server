@@ -1,0 +1,62 @@
+﻿@page
+@using LegionTDServerReborn.Models
+@using Microsoft.AspNetCore.Html
+@using LegionTDServerReborn.Extension
+@model MatchesModel
+@{
+    ViewData["Title"] = "Last Matches";
+}
+<h2>@ViewData["Title"]</h2>
+
+<div class='table-responsive'>
+    <table class="table table-responsive table-hover table-striped">
+        <thead>
+            <td>
+                Match ID
+            </td>
+            <td>
+                Date
+            </td>
+            <td>
+                Duration
+            </td>
+            <td>
+                Winner
+            </td>
+            <td>
+                Last Wave
+            </td>
+        </thead>
+        <tbody id="match_table_body">
+            @{
+                Func<Match, IHtmlContent> printMatch = 
+                    @<tr class='clickable-row' data-href='/Match/@item.MatchId'>
+                        <td>@item.MatchId</td>
+                        <td>@item.GetFormattedDate()</td>
+                        <td>@item.GetFormattedTime()</td>
+                        <td>
+                            @if (@item.Winner == 2) {
+                                <span class='radiant'>Radiant</span>
+                            } else {
+                                <span class='dire'>Dire</span>
+                            }
+                        </td>
+                        <td>@item.LastWave</td>
+                    </tr>;
+                foreach(var match in @Model.Matches) {
+                    @printMatch(match)
+                }
+            }
+        </tbody>
+    </table>
+</div>
+
+@section scripts {
+    <script>
+        $(function () {
+            $(".clickable-row").click(function() {
+                    window.location = $(this).data("href");
+                });
+        });
+    </script>
+}

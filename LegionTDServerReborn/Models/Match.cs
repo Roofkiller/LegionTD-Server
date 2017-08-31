@@ -8,7 +8,6 @@ namespace LegionTDServerReborn.Models
 {
     public class Match
     {
-
         public int MatchId { get; set; }
         public DateTime Date { get; set; }
         public bool IsTraining { get; set; }

@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
+using Newtonsoft.Json;
 
 namespace LegionTDServerReborn.Models
 {
@@ -7,7 +8,7 @@ namespace LegionTDServerReborn.Models
         public long PlayerId { get; set; }
         public int MatchId { get; set; }
         public string UnitName { get; set; }
-        [ForeignKey("MatchId,PlayerId")]
+        [ForeignKey("MatchId,PlayerId"), JsonIgnore]
         public PlayerMatchData PlayerMatch { get; set; }
         [ForeignKey("UnitName")]
         public Unit Unit { get; set; }
