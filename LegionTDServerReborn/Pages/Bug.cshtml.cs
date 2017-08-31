@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace LegionTDServerReborn.Pages
 {
-    public class ContactModel : PageModel
+    public class BugModel : PageModel
     {
         public string Message { get; set; }
 

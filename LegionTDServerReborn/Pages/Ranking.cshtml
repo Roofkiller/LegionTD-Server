@@ -10,7 +10,7 @@
 <h2>Ranking</h2>
 
 <div class='table-responsive'>
-    <table class='table table-condensed table-hover'>
+    <table class='table table-striped table-hover'>
         <col width=10%><col width=80%><col width=10%>
         <thead>
             <td>
@@ -29,7 +29,7 @@
                 Func<Player, IHtmlContent> printPlayer = 
                     @<tr class='clickable-row' data-href='/Player/@item.SteamId'>
                         <td>@(i++)</td>
-                        <td>@Model.SteamPlayers[item.SteamId].PersonaName</td>
+                        <td><img src='@Model.SteamPlayers[item.SteamId].Avatar'> @Model.SteamPlayers[item.SteamId].PersonaName</td>
                         <td>@item.Rating</td>
                     </tr>;
                 foreach(var player in @Model.Players) {

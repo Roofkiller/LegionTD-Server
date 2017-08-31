@@ -37,7 +37,13 @@ namespace LegionTDServerReborn.Pages
                     .ToList();
 
                 var idList = Ranking.Select(r => r.PlayerId).ToArray();
-                var tmp = db.Players.Include(p => p.MatchDatas).Where(p => idList.Contains(p.SteamId)).ToList();
+                var values = new StringBuilder();
+                values.Append(idList[0]);
+                for (int i = 0; i < idList.Length; i++) {
+                    values.Append($", {idList[i]}");
+                }
+                var sql = $"SELECT * FROM Players p WHERE SteamId IN ({values})";
+                var tmp = db.Players.Include(p => p.MatchDatas).FromSql(sql).AsNoTracking().ToList();
                 Players = new List<Player>();
                 for(int i = 0; i < Ranking.Count; i++) {
                     Players.Add(tmp.First(p => p.SteamId == Ranking[i].PlayerId));

@@ -6,6 +6,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Text;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
@@ -64,7 +65,7 @@ namespace LegionTDServerReborn.Controllers
         public async Task<ActionResult> Get(string method, long? steamId, string rankingType, int? from, int? to,
             bool ascending, string steamIds, int? matchId)
         {
-            // CheckUpdateRankings();
+            await CheckUpdateRankings();
             var rType = !string.IsNullOrEmpty(rankingType) && RankingTypeDict.ContainsKey(rankingType) ? RankingTypeDict[rankingType] : RankingTypes.Invalid;
             switch (method)
             {
@@ -171,7 +172,13 @@ namespace LegionTDServerReborn.Controllers
             {
                 List<PlayerRankingResponse> result = new List<PlayerRankingResponse>();
                 var query = GetFullPlayerQueryable(db);
-                var players = await query.Where(p => ids.Contains(p.SteamId)).ToListAsync();
+                var values = new StringBuilder();
+                values.Append(ids[0]);
+                for (int i = 0; i < ids.Length; i++) {
+                    values.Append($", {ids[i]}");
+                }
+                var sql = $"SELECT * FROM Players p WHERE SteamId IN ({values})";
+                var players = await query.FromSql(sql).ToListAsync();
                 foreach(var rang in ranking) {
                     result.Add(new PlayerRankingResponse(players.First(p => p.SteamId == rang.PlayerId), rang.Position));
                 }
