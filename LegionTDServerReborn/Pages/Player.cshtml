@@ -1,6 +1,7 @@
 @page "{playerId:long}"
 @using LegionTDServerReborn.Models
 @using LegionTDServerReborn.Extension
+@using LegionTDServerReborn.Helpers
 @using Microsoft.AspNetCore.Html
 @model PlayerModel
 @{
@@ -8,10 +9,10 @@
 }
 
 <div class='match-header container'>
-    <div class='col-lg-3 col-md-4 match-title'>
+    <div class='col-lg-4 col-md-4 match-title'>
         <span class='match-title'><img src='@Model.SteamPlayer.Avatar'> @ViewData["Title"]</span>
     </div>
-    <div class='col-lg col-lg-9 col-md-8 col-sm-12 col-xs-12' style="">
+    <div class='col-lg-8 col-md-8 col-sm-12 col-xs-12' style="">
         <div class='container-fluid' id='match_info' style="">
             @{
                 var dictionary = new Dictionary<string, string>();
@@ -29,3 +30,61 @@
         </div>
     </div>
 </div>
+
+<div class='table-responsive'>
+    <table class="table table-responsive table-hover table-striped">
+        <thead>
+            <td>
+                Match ID
+            </td>
+            <td>
+                Date
+            </td>
+            <td>
+                Duration
+            </td>
+            <td>
+                Winner
+            </td>
+            <td>
+                Last Wave
+            </td>
+            <td>
+                Rating
+            </td>
+        </thead>
+        <tbody id="match_table_body">
+            @{
+                Func<PlayerMatchData, IHtmlContent> printMatch = 
+                    @<tr class='clickable-row' data-href='/Match/@item.MatchId'>
+                        <td>@item.MatchId</td>
+                        <td>@item.Match.GetFormattedDate()</td>
+                        <td>@item.Match.GetFormattedTime()</td>
+                        <td>
+                            @if (@item.Match.Winner == @item.Team) {
+                                <span class='radiant'>Won Game</span>
+                            } else {
+                                <span class='dire'>Lost Game</span>
+                            }
+                        </td>
+                        <td>@item.Match.LastWave</td>
+                        <td>@Html.FormatRatingChange(item.RatingChange)</td>
+                    </tr>;
+                foreach(var match in @Model.Player.MatchDatas.OrderByDescending(m => m.MatchId)) {
+                    @printMatch(match)
+                }
+            }
+        </tbody>
+    </table>
+</div>
+
+
+@section scripts {
+    <script>
+        $(function () {
+            $(".clickable-row").click(function() {
+                    window.location = $(this).data("href");
+                });
+        });
+    </script>
+}

@@ -1,0 +1,49 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Text;
+using System.IO;
+using System.Threading.Tasks;
+using LegionTDServerReborn.Models;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Configuration;
+using System.Net.Http;
+using System.Net;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
+namespace LegionTDServerReborn.Pages
+{
+    public class RankingModel : SteamApiModel
+    {
+        public Dictionary<long, SteamPlayer> SteamPlayers {get; set;}
+        public List<Ranking> Ranking {get; set;}
+        public List<Player> Players {get; set;}
+
+        public RankingModel(IConfiguration configuration)
+            :base(configuration) {
+        }
+
+        public void OnGet()
+        {
+            using (var db = new LegionTdContext()) {
+                Ranking = db.Rankings
+                    .Where(r => r.Position >= 0 
+                        && r.Position <= 50)
+                    .ToList()
+                    .OrderBy(r => r.Position)
+                    .ToList();
+
+                var idList = Ranking.Select(r => r.PlayerId).ToArray();
+                var tmp = db.Players.Include(p => p.MatchDatas).Where(p => idList.Contains(p.SteamId)).ToList();
+                Players = new List<Player>();
+                for(int i = 0; i < Ranking.Count; i++) {
+                    Players.Add(tmp.First(p => p.SteamId == Ranking[i].PlayerId));
+                }
+            }
+            SteamPlayers = RequestPlayers(Ranking.Select(p => p.PlayerId).ToArray());
+        }
+    }
+}

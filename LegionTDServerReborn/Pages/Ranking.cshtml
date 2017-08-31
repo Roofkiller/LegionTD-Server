@@ -1,0 +1,51 @@
+@page 
+@using LegionTDServerReborn.Models
+@using LegionTDServerReborn.Extension
+@using Microsoft.AspNetCore.Html
+@model RankingModel
+@{
+    ViewData["Title"] = "Ranking";
+}
+
+<h2>Ranking</h2>
+
+<div class='table-responsive'>
+    <table class='table table-condensed table-hover'>
+        <col width=10%><col width=80%><col width=10%>
+        <thead>
+            <td>
+                Rang
+            </td>
+            <td>
+                Player
+            </td>
+            <td>
+                Rating
+            </td>
+        </thead>
+        <tbody>
+            @{
+                int i = 1;
+                Func<Player, IHtmlContent> printPlayer = 
+                    @<tr class='clickable-row' data-href='/Player/@item.SteamId'>
+                        <td>@(i++)</td>
+                        <td>@Model.SteamPlayers[item.SteamId].PersonaName</td>
+                        <td>@item.Rating</td>
+                    </tr>;
+                foreach(var player in @Model.Players) {
+                    @printPlayer(player)
+                }
+            }
+        </tbody>
+    </table>
+</div>
+
+@section scripts {
+    <script>
+        $(function () {
+            $(".clickable-row").click(function() {
+                    window.location = $(this).data("href");
+                });
+        });
+    </script>
+}

@@ -155,9 +155,7 @@ namespace LegionTDServerReborn.Controllers
             {
                 int lower = (from ?? 0);
                 int upper = (to + 1 ?? int.MaxValue);
-                ranking = (await db.Rankings.Where(r => r.Ascending == asc 
-                                                    && r.Type == t
-                                                    && r.Position <= upper 
+                ranking = (await db.Rankings.Where(r => r.Position <= upper 
                                                     && r.Position >= lower)
                                             .ToListAsync()).OrderBy(d => d.Position).ToList();
             }
@@ -168,12 +166,14 @@ namespace LegionTDServerReborn.Controllers
 
         private async Task<List<PlayerRankingResponse>> GetRankingData(List<Ranking> ranking)
         {
+            var ids = ranking.Select(r => r.PlayerId).ToArray();
             using (var db = new LegionTdContext())
             {
                 List<PlayerRankingResponse> result = new List<PlayerRankingResponse>();
                 var query = GetFullPlayerQueryable(db);
-                foreach(var r in ranking) {
-                    result.Add(new PlayerRankingResponse(await query.SingleAsync(p => p.SteamId == r.PlayerId), r.Position - 1));
+                var players = await query.Where(p => ids.Contains(p.SteamId)).ToListAsync();
+                foreach(var rang in ranking) {
+                    result.Add(new PlayerRankingResponse(players.First(p => p.SteamId == rang.PlayerId), rang.Position));
                 }
                 return result;
             }
@@ -216,10 +216,10 @@ namespace LegionTDServerReborn.Controllers
             foreach (RankingTypes value in Enum.GetValues(typeof(RankingTypes)))
             {
                 if (value != RankingTypes.Rating) continue;
-                var key = value + "|" + true;
-                if (!_cache.TryGetValue(key, out object a))
-                    tasks.Add(UpdateRanking(value, true));
-                key = value + "|" + false;
+                // var key = value + "|" + true;
+                // if (!_cache.TryGetValue(key, out object a))
+                //     tasks.Add(UpdateRanking(value, true));
+                var key = value + "|" + false;
                 if (!_cache.TryGetValue(key, out object b))
                     tasks.Add(UpdateRanking(value, false));
             }
@@ -619,7 +619,8 @@ namespace LegionTDServerReborn.Controllers
                     Winner = winner,
                     Duration = duration,
                     LastWave = lastWave,
-                    Date = DateTime.Now
+                    Date = DateTime.Now,
+                    IsTraining = true
                 };
                 db.Matches.Add(match);
                 await db.SaveChangesAsync();
