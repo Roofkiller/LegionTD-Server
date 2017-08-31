@@ -46,6 +46,7 @@ namespace LegionTDServerReborn.Controllers
             public const string Ranking = "ranking";
             public const string MatchHistory = "match_history";
             public const string MatchInfo = "match_info";
+            public const string LastMatches = "last_matches";
         }
 
         private static readonly Dictionary<string, RankingTypes> RankingTypeDict = new Dictionary<string, RankingTypes>
@@ -63,7 +64,7 @@ namespace LegionTDServerReborn.Controllers
         public async Task<ActionResult> Get(string method, long? steamId, string rankingType, int? from, int? to,
             bool ascending, string steamIds)
         {
-            // await CheckUpdateRankings();
+            // CheckUpdateRankings();
             var rType = !string.IsNullOrEmpty(rankingType) && RankingTypeDict.ContainsKey(rankingType) ? RankingTypeDict[rankingType] : RankingTypes.Invalid;
             switch (method)
             {
@@ -79,10 +80,21 @@ namespace LegionTDServerReborn.Controllers
                     return await GetMatchHistory(steamId, from, to);
                 case GetMethods.MatchInfo:
                     break;
+                case GetMethods.LastMatches:
+                    return await GetLastMatches(from, to);
                 default:
                     break;
             }
             return Json(new InvalidRequestFailure());
+        }
+
+        public async Task<ActionResult> GetLastMatches(int? from, int? to) {
+            using(var db = new LegionTdContext()) {
+                return Json(await db.Matches.Where(m => !m.IsTraining)
+                                            .OrderByDescending(m => m.MatchId)
+                                            .Skip(from ?? 0)
+                                            .Take(to ?? 15).ToListAsync());
+            }
         }
 
         public async Task<ActionResult> GetMatchHistory(long? steamId, int? from, int? to)
@@ -195,11 +207,13 @@ namespace LegionTDServerReborn.Controllers
                 if (value != RankingTypes.Rating) continue;
                 var key = value + "|" + true;
                 if (!_cache.TryGetValue(key, out object a))
-                    await UpdateRanking(value, true);
+                    tasks.Add(UpdateRanking(value, true));
                 key = value + "|" + false;
                 if (!_cache.TryGetValue(key, out object b))
-                    await UpdateRanking(value, false);
+                    tasks.Add(UpdateRanking(value, false));
             }
+            foreach (var task in tasks)
+                await task;
         }
 
         private async Task UpdateRanking(Models.RankingTypes type, bool asc)
@@ -208,7 +222,7 @@ namespace LegionTDServerReborn.Controllers
             _cache.Set(key, true, DateTimeOffset.Now.AddDays(1));
             using (var db = new LegionTdContext())
             {
-                db.Database.ExecuteSqlCommand($"DELETE FROM Rankings WHERE Type = {(int) type} AND Ascending = {(asc ? 1 : 0)}");
+                await db.Database.ExecuteSqlCommandAsync($"DELETE FROM Rankings WHERE Type = {(int) type} AND Ascending = {(asc ? 1 : 0)}");
                 Console.WriteLine($"Cleared Ranking for {type} {asc}");
                 string sql;
                 string sqlSelects = "";
@@ -234,19 +248,9 @@ namespace LegionTDServerReborn.Controllers
                         sqlWheres = "";
                         break;
                 }
-                MySqlParameter CreateParameter(string k, DbType t, object value)
-                {
-                    MySqlParameter result = new MySqlParameter
-                    {
-                        DbType = t,
-                        Value = value,
-                        ParameterName = k
-                    };
-                    return result;
-                }
                 sql = "INSERT INTO Rankings \n" +
                     "(Type, Ascending, PlayerId, Position) \n" +
-                    "SELECT @t := @type, @a := @asc, PlayerId, @rownum := @rownum + 1 AS position\n" +
+                    $"SELECT @t := {(int)type}, @a := {(asc ? "TRUE" : "FALSE")}, PlayerId, @rownum := @rownum + 1 AS position\n" +
                     "FROM (SELECT PlayerId \n" +
                     sqlSelects +
                     "FROM PlayerMatchDatas AS pm \n" +
@@ -256,10 +260,7 @@ namespace LegionTDServerReborn.Controllers
                     sqlOrderBy +
                     ") AS pr, \n" +
                     "(SELECT @rownum := 0) AS r \n";
-                await db.Database.ExecuteSqlCommandAsync(sql,
-                    CancellationToken.None,
-                    CreateParameter("@type", DbType.Int32, type),
-                    CreateParameter("@asc", DbType.Boolean, asc));
+                await db.Database.ExecuteSqlCommandAsync(sql);
                 Console.WriteLine($"Updated ranking for {type} {asc}");
             }
         }

@@ -38,10 +38,8 @@ namespace LegionTDServerReborn
             {
                 config.ModelBinderProviders.Insert(0, new InvariantFloatModelBinderProvider());
             });
-//            services.AddMvc();
 
             services.AddEntityFrameworkSqlite();
-//            services.AddDbContext<LegionTdSqliteContext>(options => options.UseSqlite("Filename=./legionTDServer.db"));
             services.AddMemoryCache();
             LegionTdContext.ConnectionString = Configuration.GetConnectionString("MySQLConnection");
             services.AddDbContext<LegionTdContext>(
@@ -60,7 +58,19 @@ namespace LegionTDServerReborn
             {
                 routes.MapRoute("default", "{controller=legiontd}/");
             });
+
+            if (env.IsDevelopment())
+            {
+                app.UseDeveloperExceptionPage();
+            }
+            else
+            {
+                app.UseExceptionHandler("/Error");
+            }
+
+            app.UseStaticFiles();
             
+
 //            LegionTdContextMover.SetTraining();
 //            LegionTdContextMover.Seed();
         }

@@ -27,6 +27,11 @@ namespace LegionTDServerReborn.Models
 
         }
 
+        public LegionTdContext(DbContextOptions<LegionTdContext> options)
+            :base (options) {
+
+            }
+
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             base.OnConfiguring(optionsBuilder);

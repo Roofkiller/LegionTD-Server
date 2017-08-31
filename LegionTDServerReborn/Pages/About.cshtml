@@ -1,0 +1,45 @@
+﻿@page
+@model AboutModel
+@{
+    ViewData["Title"] = "About";
+}
+<h2>@ViewData["Title"]</h2>
+<h3>@Model.Message</h3>
+
+@section scripts {
+    <script>
+        $(function () {
+            $.get("/api/legiontd?method=last_matches", function(data) {
+                $("#match_table_body").empty();
+                $.each(data, function(i, v){
+                    $("#match_table_body").html($('#match_table_body').html() + MatchToTableEntry(v));
+                });
+                $(".clickable-row").click(function() {
+                    window.location = $(this).data("href");
+                })
+            }, 'json');
+        });
+    </script>
+}
+<p id="test">Use this area to provide additional information.</p>
+<table class="table table-responsive table-hover">
+    <thead>
+        <td>
+            Match ID
+        </td>
+        <td>
+            Date
+        </td>
+        <td>
+            Duration
+        </td>
+        <td>
+            Winner
+        </td>
+        <td>
+            Last Wave
+        </td>
+    </thead>
+    <tbody id="match_table_body">
+    </tbody>
+</table>
