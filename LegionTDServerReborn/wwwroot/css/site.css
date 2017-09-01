@@ -87,3 +87,7 @@ body {
 a.matches-site{
     color: black;
 }
+
+.builder-icon {
+    height: 28px;
+}

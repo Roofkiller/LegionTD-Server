@@ -41,7 +41,7 @@
     <table class="table table-responsive table-hover table-striped">
         <thead>
             <td>
-                Match ID
+                Builder
             </td>
             <td>
                 Date
@@ -63,7 +63,7 @@
             @{
                 Func<PlayerMatchData, IHtmlContent> printMatch = 
                     @<tr class='clickable-row' data-href='/Match/@item.MatchId'>
-                        <td>@item.MatchId</td>
+                        <td><img class='builder-icon' src='~/images/builder/@(item.FractionName + ".png")'></td>
                         <td>@item.Match.GetFormattedDate()</td>
                         <td>@item.Match.GetFormattedTime()</td>
                         <td>

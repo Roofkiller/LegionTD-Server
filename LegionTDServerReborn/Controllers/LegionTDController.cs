@@ -154,7 +154,7 @@ namespace LegionTDServerReborn.Controllers
             {
                 int lower = (from ?? 0);
                 int upper = (to + 1 ?? int.MaxValue);
-                ranking = (await db.Rankings.Where(r => r.Position <= upper 
+                ranking = (await db.Rankings.Where(r => r.Position <= upper
                                                     && r.Position >= lower)
                                             .ToListAsync()).OrderBy(d => d.Position).ToList();
             }
@@ -178,7 +178,7 @@ namespace LegionTDServerReborn.Controllers
                 var sql = $"SELECT * FROM Players p WHERE SteamId IN ({values})";
                 var players = await query.FromSql(sql).ToListAsync();
                 foreach(var rang in ranking) {
-                    result.Add(new PlayerRankingResponse(players.First(p => p.SteamId == rang.PlayerId), rang.Position));
+                    result.Add(new PlayerRankingResponse(players.First(p => p.SteamId == rang.PlayerId), rang.Position - 1));
                 }
                 return result;
             }
@@ -348,13 +348,22 @@ namespace LegionTDServerReborn.Controllers
             //Adding Duels
             if (!string.IsNullOrEmpty(duelDataString))
             {
-                var duelData =
-                    JsonConvert.DeserializeObject<Dictionary<int, Dictionary<String, float>>>(duelDataString);
+                Dictionary<int, Dictionary<String, float>> duelData = null;
+                try {
+                    duelData = JsonConvert.DeserializeObject<Dictionary<int, Dictionary<String, float>>>(duelDataString);
+                } catch (Exception) {
+                    try {
+                        var data = JsonConvert.DeserializeObject<List<Dictionary<String, float>>>(duelDataString);
+                        for(int i = 0; i < data.Count; i++) {
+                            duelData[i + 1] = data[i];
+                        }
+                    } catch (Exception) {}
+                }
                 if (duelData != null)
                 {
                     foreach (var pair in duelData)
                     {
-                        int order = pair.Key;
+                        var order = pair.Key;
                         var data = pair.Value;
                         Duel duel = await CreateDuel(match, order, (int) data["winner"], data["time"]);
                     }
@@ -389,38 +398,6 @@ namespace LegionTDServerReborn.Controllers
 
             return Json(new {Success = true});
         }
-
-        // private async Task UpdateFractionDatas(Match match) {
-        //     using (var db = new LegionTdContext()) {
-        //         var m = await db.Matches.Include(ma => ma.PlayerDatas)
-        //                         .ThenInclude(p => p.UnitDatas)
-        //                         .Include(ma => ma.Duels)
-        //                         .SingleAsync(ma => ma.MatchId == match.MatchId);
-        //         //Return if this match is a training match
-        //         if (m.IsTraining) return;
-        //         foreach (var player in m.PlayerDatas) {
-        //             //Increasing Played Counter
-        //             var data = await GetOrCreateFractionData(player.PlayerId, player.FractionName);
-        //             data.Played++;
-
-
-        //             //Updating FractionData
-        //             Dictionary<string, FractionData> datas = new Dictionary<string, FractionData>();
-        //             foreach (var unitData in player.UnitDatas) {
-        //                 if (unitData.Killed > 0) {
-        //                     string fName = unitData.Unit.FractionName;
-        //                     if (!datas.ContainsKey(fName)) {
-        //                         datas[fName] = await GetOrCreateFractionData(player.PlayerId, fName);
-        //                     }
-        //                     datas[fName].Killed += unitData.Killed;
-        //                 }
-        //             }
-        //             db.Update(data);
-        //             db.UpdateRange(datas.Values);
-        //         }
-        //         await db.SaveChangesAsync();
-        //     }
-        // }
 
         private async Task DecideIsTraining(Match match)
         {
