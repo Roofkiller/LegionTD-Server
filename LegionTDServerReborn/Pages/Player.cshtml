@@ -8,25 +8,29 @@
     ViewData["Title"] = @Model.SteamPlayer.PersonaName;
 }
 
-<div class='match-header container'>
-    <div class='col-lg-4 col-md-4 match-title'>
-        <span class='match-title'><img src='@Model.SteamPlayer.Avatar'> @ViewData["Title"]</span>
-    </div>
-    <div class='col-lg-8 col-md-8 col-sm-12 col-xs-12' style="">
-        <div class='container-fluid' id='match_info' style="">
-            @{
-                var dictionary = new Dictionary<string, string>();
-                dictionary["Last Game"] = @Model.Player.MatchDatas.Max(m => m.Match.Date).ToString("dd.MM.yy HH:mm");
-                dictionary["Rating"] = @Model.Player.Rating.ToString();
-                dictionary["Record"] = $"<span class='radiant'>{@Model.Player.WonGames}</span> - <span class='dire'>{@Model.Player.LostGames}</span>";
-                dictionary["Win Rate"] = (@Model.Player.WinRate * 100).ToString("00.00") + "%";
-                foreach (var pair in dictionary) {
-                    <div class='col-md-3 col-sm-3 col-xs-6 match-info'>
-                        <p class='match-info-title'>@pair.Key</p>
-                        <p class='match-info-value'>@Html.Raw(pair.Value)</p>
+<div class='container'>
+    <div class='row match-header '>
+        <div class='col-lg-4 col-md-4 match-title'>
+            <span class='match-title'><img src='@Model.SteamPlayer.Avatar'> @ViewData["Title"]</span>
+        </div>
+        <div class='col-lg-8 col-md-8 col-sm-12 col-xs-12' style="">
+            <div class='container-fluid' id='match_info' style="">
+                @{
+                    var dictionary = new Dictionary<string, string>();
+                    dictionary["Last Game"] = @Model.Player.MatchDatas.Max(m => m.Match.Date).DateToText();
+                    dictionary["Rating"] = @Model.Player.Rating.ToString();
+                    dictionary["Record"] = $"<span class='radiant'>{@Model.Player.WonGames}</span> - <span class='dire'>{@Model.Player.LostGames}</span>";
+                    dictionary["Win Rate"] = (@Model.Player.WinRate * 100).ToString("00.00") + "%";
+                    <div class='row'>
+                        @foreach (var pair in dictionary) {
+                            <div class='col-md-3 col-sm-3 col-xs-6 match-info'>
+                                <p class='match-info-title'>@pair.Key</p>
+                                <p class='match-info-value'>@Html.Raw(pair.Value)</p>
+                            </div>
+                        }
                     </div>
                 }
-            }
+            </div>
         </div>
     </div>
 </div>
@@ -46,7 +50,7 @@
                 Duration
             </td>
             <td>
-                Winner
+                Result
             </td>
             <td>
                 Last Wave
@@ -63,16 +67,20 @@
                         <td>@item.Match.GetFormattedDate()</td>
                         <td>@item.Match.GetFormattedTime()</td>
                         <td>
-                            @if (@item.Match.Winner == @item.Team) {
-                                <span class='radiant'>Won Game</span>
+                            @if (@item.Abandoned) {
+                                <span class='dire'>Abandoned</span>
                             } else {
-                                <span class='dire'>Lost Game</span>
+                                @if (@item.Won) {
+                                    <span class='radiant'>Won Game</span>
+                                } else {
+                                    <span class='dire'>Lost Game</span>
+                                }
                             }
                         </td>
                         <td>@item.Match.LastWave</td>
                         <td>@Html.FormatRatingChange(item.RatingChange)</td>
                     </tr>;
-                foreach(var match in @Model.Player.MatchDatas.OrderByDescending(m => m.MatchId)) {
+                foreach(var match in @Model.Player.MatchDatas.OrderByDescending(m => m.MatchId).Take(50)) {
                     @printMatch(match)
                 }
             }

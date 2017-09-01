@@ -68,3 +68,22 @@ body {
 
 .match-info-value {
 }
+
+.matches-indicator {
+}
+
+.matches-site {
+    padding: 6px;
+}
+
+.matches-site-current {
+    background-color: rgb(240, 240, 240);
+}
+
+.matches-site:hover {
+    background-color: rgb(230, 230, 230);
+}
+
+a.matches-site{
+    color: black;
+}

@@ -71,8 +71,6 @@ namespace LegionTDServerReborn
             }
 
             app.UseStaticFiles();
-            
-
 //            LegionTdContextMover.SetTraining();
 //            LegionTdContextMover.Seed();
         }

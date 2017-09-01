@@ -20,13 +20,23 @@ namespace LegionTDServerReborn.Pages
         
         public List<Match> Matches {get; set;}
 
-        public void OnGet(int? from, int? to)
+        public int MatchCount {get; set;}
+
+        public const int MatchesPerSite = 30;
+
+        public int Site {get; set;}
+
+        public int PageCount => (int)Math.Ceiling(MatchCount / (float)MatchesPerSite);
+
+        public void OnGet(int? site)
         {
+            Site = site ?? 1;
             using(var db = new LegionTdContext()) {
                 Matches = db.Matches.Where(m => !m.IsTraining)
                                     .OrderByDescending(m => m.MatchId)
-                                    .Skip(from ?? 0)
-                                    .Take(to ?? 30).ToList();
+                                    .Skip((Site - 1) * MatchesPerSite)
+                                    .Take(MatchesPerSite).ToList();
+                MatchCount = db.Matches.Where(m => !m.IsTraining).Count();
             }
         }
     }

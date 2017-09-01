@@ -81,7 +81,6 @@ namespace LegionTDServerReborn.Controllers
                     return await GetMatchHistory(steamId, from, to);
                 case GetMethods.MatchInfo:
                     return await GetMatchInfo(matchId);
-                    break;
                 case GetMethods.LastMatches:
                     return await GetLastMatches(from, to);
                 default:
@@ -150,7 +149,6 @@ namespace LegionTDServerReborn.Controllers
             if (rankingType == RankingTypes.Invalid)
                 return Json(new InvalidRequestFailure());
             var playerCount = await GetPlayerCount();
-            RankingTypes t = RankingTypes.Rating;
             List<Ranking> ranking;
             using (var db = new LegionTdContext())
             {
@@ -428,10 +426,10 @@ namespace LegionTDServerReborn.Controllers
         {
             using (var db = new LegionTdContext())
             {
-                await db.Entry(match).Collection(m => m.PlayerDatas).LoadAsync();
-                match.IsTraining = match.PlayerDatas.All(p => p.Team == match.Winner) ||
-                                   match.PlayerDatas.All(p => p.Team != match.Winner);
-                db.Entry(match).State = EntityState.Modified;
+                var ma = await db.Matches.Include(m => m.PlayerDatas).SingleAsync(m => m.MatchId == match.MatchId);
+                ma.IsTraining = ma.PlayerDatas.All(p => p.Team == match.Winner) ||
+                                ma.PlayerDatas.All(p => p.Team != match.Winner);
+                db.Entry(ma).State = EntityState.Modified;
                 await db.SaveChangesAsync();
             }
         }

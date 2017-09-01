@@ -35,11 +35,12 @@ namespace LegionTDServerReborn.Helpers {
         }
 
         public static string MatchToTableRow(this Match match) {
+            var winnerTeam = match.Winner.GetTeamName();
             string result = $"<tr class='clickable-row' data-href='/Match/{match.MatchId}'>"+
                 $"<td>{match.MatchId}</td>" +
                 $"<td>{match.GetFormattedDate()}</td>" +
                 $"<td>{match.GetFormattedTime()}</td>" +
-                $"<td>{(match.Winner == 2 ? "<span class='radiant'>Radiant</span>" : "<span class='dire'>Dire</span>")}</td>" +
+                $"<td><span class='{winnerTeam.ToLower()}'>{winnerTeam}</span>" +
                 $"<td>{match.LastWave}</td>" +
                 "</tr>";
             return result;                
@@ -63,6 +64,10 @@ namespace LegionTDServerReborn.Helpers {
                 result = $"<span class='radiant'>{value}</span>";
             }
             return new HtmlString(result);
+        }
+
+        public static HtmlString TeamToHtml(this IHtmlHelper html, int team) {
+            return new HtmlString($"<span class='{team.GetTeamName().ToLower()}'>{team.GetTeamName()}</span>");
         }
     }
 

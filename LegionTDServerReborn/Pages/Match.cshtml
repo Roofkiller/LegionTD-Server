@@ -1,6 +1,7 @@
 @page "{matchId:int}"
 @using LegionTDServerReborn.Models
 @using LegionTDServerReborn.Extension
+@using LegionTDServerReborn.Helpers
 @using Microsoft.AspNetCore.Html
 @model MatchModel
 @{
@@ -17,7 +18,8 @@
                 var data = new Dictionary<string, string>();
                 data["Date"] = @Model.Match.GetFormattedDate();
                 data["Duration"] = @Model.Match.GetFormattedTime();
-                data["Winner"] = @Model.Match.Winner == 2 ? "<span class='radiant'>Radiant</span>" : "<span class='dire'>Dire</span>";
+                var winner = @Model.Match.Winner.GetTeamName();
+                data["Winner"] = @Html.TeamToHtml(@Model.Match.Winner).Value;
                 data["Last Wave"] = @Model.Match.LastWave.ToString();
 
                 foreach(var pair in data) {
@@ -31,7 +33,6 @@
     </div>
 </div>
 
-
 @{
     Func<PlayerMatchData, IHtmlContent> printPlayer = 
         @<tr>
@@ -44,17 +45,15 @@
                 </a>
             </td>
             <td>
-                @item.Abandoned
+                @item.FractionName
             </td>
-            <td>
-                @if (item.RatingChange < 0) {
-                    <span class='dire'>@item.RatingChange</span>
-                } else {
-                    <span class='radiant'>&nbsp;@item.RatingChange</span>
+            <td class='text-center'>
+                @if (item.Abandoned) {
+                    <i class="fa fa-times dire" aria-hidden="true"></i>
                 }
             </td>
             <td>
-                @item.FractionName
+                @Html.FormatRatingChange(item.RatingChange)
             </td>
             <td>
                 @item.Experience
@@ -69,87 +68,56 @@
                 @item.Builds
             </td>
         </tr>;
-}        
-<h3 class='radiant'>Radiant</h3>
 
-<div class='table-responsive'>
-    <table class='match-player-table table table-responsive table-striped table-hover'>
-        <col width="20%"><col width="10%"><col width="10%"><col width="15%"><col width="15%"><col width="10%"><col width="10%"><col width="10%">
-        <thead>
-            <td>
-                Player
-            </td>
-            <td>
-                Abandoned
-            </td>
-            <td>
-                Rating
-            </td>
-            <td>
-                Builder
-            </td>
-            <td>
-                Experience
-            </td>
-            <td>
-                Kills
-            </td>
-            <td>
-                Leaks
-            </td>
-            <td>
-                Builds
-            </td>
-        </thead>
-        <tbody>
-            @{
-                var radiantPlayers = @Model.Match.PlayerDatas.Where(p => p.Team == 2);
-                foreach(var player in @radiantPlayers) {
-                    @printPlayer(player)
-                }
+
+    var teams = new int[]{2, 3};
+    foreach(int team in teams) {
+        <h3 class='@team.GetTeamName().ToLower()'>
+            @team.GetTeamName()
+            @if (team == Model.Match.Winner) {
+                <i class="fa fa-trophy" aria-hidden="true"></i>
             }
-        </tbody>
-    </table>
-</div>
+        </h3>
 
-<h3 class='dire'>Dire</h3>
+        <div class='table-responsive'>
+            <table class='match-player-table table table-responsive table-striped table-hover'>
+                <col width="20%"><col width="10%"><col width="10%"><col width="15%"><col width="15%"><col width="10%"><col width="10%"><col width="10%">
+                <thead>
+                    <td>
+                        Player
+                    </td>
+                    <td>
+                        Builder
+                    </td>
+                    <td>
+                        Abandoned
+                    </td>
+                    <td>
+                        Rating
+                    </td>
+                    <td>
+                        Experience
+                    </td>
+                    <td>
+                        Kills
+                    </td>
+                    <td>
+                        Leaks
+                    </td>
+                    <td>
+                        Builds
+                    </td>
+                </thead>
+                <tbody>
+                    @{
+                        var radiantPlayers = @Model.Match.PlayerDatas.Where(p => p.Team == team);
+                        foreach(var player in @radiantPlayers) {
+                            @printPlayer(player)
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}
 
-<div class='table-responsive'>
-    <table class='match-player-table table table-responsive table-striped table-hover'>
-        <col width="20%"><col width="10%"><col width="10%"><col width="15%"><col width="15%"><col width="10%"><col width="10%"><col width="10%">
-        <thead>
-            <td>
-                Player
-            </td>
-            <td>
-                Abandoned
-            </td>
-            <td>
-                Rating
-            </td>
-            <td>
-                Builder
-            </td>
-            <td>
-                Experience
-            </td>
-            <td>
-                Kills
-            </td>
-            <td>
-                Leaks
-            </td>
-            <td>
-                Builds
-            </td>
-        </thead>
-        <tbody>
-            @{
-                var direPlayers = @Model.Match.PlayerDatas.Where(p => p.Team == 3);
-                foreach(var player in @direPlayers) {
-                    @printPlayer(player)
-                }
-            }
-        </tbody>
-    </table>
-</div>
