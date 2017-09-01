@@ -44,6 +44,7 @@
 </p>
 <div class='table-responsive'>
     <table class="table table-responsive table-hover table-striped">
+        <col width='10%'><col width='20%'><col width='10%'><col width='10%'><col width='10%'><col width='20%'><col width='20%'>
         <thead>
             <td>
                 Match ID
@@ -55,24 +56,38 @@
                 Duration
             </td>
             <td>
+                Last Wave
+            </td>
+            <td>
                 Winner
             </td>
             <td>
-                Last Wave
+                Radiant Team
+            </td>
+            <td>
+                Dire Team
             </td>
         </thead>
         <tbody id="match_table_body">
             @{
-                Func<Match, IHtmlContent> printMatch = 
-                    @<tr class='clickable-row' data-href='/Match/@item.MatchId'>
-                        <td>@item.MatchId</td>
-                        <td>@item.GetFormattedDate()</td>
-                        <td>@item.GetFormattedTime()</td>
-                        <td>@Html.TeamToHtml(item.Winner)</td>
-                        <td>@item.LastWave</td>
-                    </tr>;
                 foreach(var match in @Model.Matches) {
-                    @printMatch(match)
+                    <tr class='clickable-row' data-href='/Match/@match.MatchId'>
+                        <td>@match.MatchId</td>
+                        <td>@match.GetFormattedDate()</td>
+                        <td>@match.GetFormattedTime()</td>
+                        <td>@match.LastWave</td>
+                        <td>@Html.TeamToHtml(match.Winner)</td>
+                        <td>
+                            @foreach(var player in match.PlayerDatas.Where(p => p.Team == 2)) {
+                                <img class='builder-icon' src='~/images/builder/@(player.FractionName + ".png")'>
+                            }
+                        </td>
+                        <td>
+                            @foreach(var player in match.PlayerDatas.Where(p => p.Team == 3)) {
+                                <img class='builder-icon' src='~/images/builder/@(player.FractionName + ".png")'>
+                            }
+                        </td>
+                    </tr>;
                 }
             }
         </tbody>

@@ -121,3 +121,47 @@
     }
 }
 
+@if (Model.Match.Duels.Count > 0) {
+    <h3>Duels</h3>
+    <div class='table-responsive'>
+        <table class="table table-striped text-center">
+            <thead>
+                <td class='text-left'>
+                    Team
+                </td>
+                @foreach (var duel in Model.Match.Duels) {
+                    <td>
+                        Duel @duel.Order
+                    </td>
+                }
+            </thead>
+            <tbody>
+                <tr>
+                    <td class='text-left'>
+                        Radiant
+                    </td>
+                    @foreach(var duel in Model.Match.Duels) {
+                        <td>
+                            @if (duel.Winner == 2) {
+                                    <i class="fa fa-times radiant" aria-hidden="true"></i>
+                            }
+                        </td>
+                    }
+                </tr>
+                <tr>
+                    <td class='text-left'>
+                        Dire
+                    </td>
+                    @foreach(var duel in Model.Match.Duels) {
+                        <td>
+                            @if (duel.Winner == 3) {
+                                    <i class="fa fa-times dire" aria-hidden="true"></i>
+                            }
+                        </td>
+                    }
+                </tr>
+            </tbody>
+        </table>
+    </div>
+}
+

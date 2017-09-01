@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using LegionTDServerReborn.Models;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Configuration;
+using Microsoft.EntityFrameworkCore;
 
 namespace LegionTDServerReborn.Pages
 {
@@ -32,7 +33,8 @@ namespace LegionTDServerReborn.Pages
         {
             Site = site ?? 1;
             using(var db = new LegionTdContext()) {
-                Matches = db.Matches.Where(m => !m.IsTraining)
+                Matches = db.Matches.Include(m => m.PlayerDatas)
+                                    .Where(m => !m.IsTraining)
                                     .OrderByDescending(m => m.MatchId)
                                     .Skip((Site - 1) * MatchesPerSite)
                                     .Take(MatchesPerSite).ToList();

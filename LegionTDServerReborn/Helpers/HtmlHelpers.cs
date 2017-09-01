@@ -51,7 +51,7 @@ namespace LegionTDServerReborn.Helpers {
             if ( ratingChange < 0) {
                 result = $"<span class='dire'>{ratingChange}</span>";
             } else {
-                result = $"<span class='radiant'>{ratingChange.ToString().PadRight(3)}</span>";
+                result = $"<span class='radiant'>+{ratingChange}</span>";
             }
             return new HtmlString(result);
         }

@@ -29,6 +29,7 @@ namespace LegionTDServerReborn.Controllers
         private readonly IMemoryCache _cache;
         private const string PlayerCountKey = "player_count";
 
+
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
