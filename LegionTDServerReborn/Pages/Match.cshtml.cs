@@ -24,16 +24,17 @@ namespace LegionTDServerReborn.Pages
 
         public Dictionary<long, SteamPlayer> Players {get; set;}
 
-        public MatchModel(IConfiguration configuration)
+        private LegionTdContext _db;
+
+        public MatchModel(IConfiguration configuration, LegionTdContext db)
             :base(configuration) {
+                _db = db;
         }
 
         public void OnGet(int matchId)
         {
             MatchId = matchId;
-            using(var db = new LegionTdContext()) {
-                Match = db.Matches.Include(m => m.Duels).Include(m => m.PlayerDatas).SingleOrDefault(m => m.MatchId == matchId);
-            }
+            Match = _db.Matches.Include(m => m.Duels).Include(m => m.PlayerDatas).SingleOrDefault(m => m.MatchId == matchId);
             Players = RequestPlayers(Match.PlayerDatas.Select(p => p.PlayerId).ToArray());
         }
 

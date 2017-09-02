@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace LegionTDServerReborn.Models
 {
@@ -10,5 +11,9 @@ namespace LegionTDServerReborn.Models
     {
         [Key]
         public string Name { get; set; }
+        [InverseProperty("Fraction")]
+        public List<PlayerMatchData> PlayedMatches {get; set;}
+        [InverseProperty("Fraction")]
+        public List<Unit> Units {get; set;}
     }
 }

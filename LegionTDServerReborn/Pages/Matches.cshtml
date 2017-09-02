@@ -79,12 +79,12 @@
                         <td>@Html.TeamToHtml(match.Winner)</td>
                         <td>
                             @foreach(var player in match.PlayerDatas.Where(p => p.Team == 2)) {
-                                <img class='builder-icon' src='~/images/builder/@(player.FractionName + ".png")'>
+                                @player.FractionName.ToBuilderIcon()
                             }
                         </td>
                         <td>
                             @foreach(var player in match.PlayerDatas.Where(p => p.Team == 3)) {
-                                <img class='builder-icon' src='~/images/builder/@(player.FractionName + ".png")'>
+                                @player.FractionName.ToBuilderIcon()
                             }
                         </td>
                     </tr>;

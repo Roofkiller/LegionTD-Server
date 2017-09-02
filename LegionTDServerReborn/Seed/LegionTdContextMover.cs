@@ -12,27 +12,24 @@ namespace LegionTDServerReborn.Seed
     public static class LegionTdContextMover
     {
 
-        public static void SetTraining()
-        {
-            using (var db = new LegionTdContext())
-            {
-                var matches = db.Matches.Include(m => m.PlayerDatas).Where(m => m.Date > DateTime.Parse("2017-05-10 12:25:04.366187")).ToList();
-                int i = 0;
-                matches.ForEach(m =>
-                {
-                    m.IsTraining = m.PlayerDatas.All(p => p.Team == m.Winner) ||
-                                   m.PlayerDatas.All(p => p.Team != m.Winner);
-                    if (m.IsTraining)
-                        m.PlayerDatas.ForEach(p =>
-                        {
-                            p.RatingChange = 0;
-                        });
-                        Console.WriteLine(i + " geschafft.");
-                    i++;
-                });
-                db.SaveChanges();
-            }
-        }
+        // public static void SetTraining()
+        // {
+        //         var matches = db.Matches.Include(m => m.PlayerDatas).Where(m => m.Date > DateTime.Parse("2017-05-10 12:25:04.366187")).ToList();
+        //         int i = 0;
+        //         matches.ForEach(m =>
+        //         {
+        //             m.IsTraining = m.PlayerDatas.All(p => p.Team == m.Winner) ||
+        //                            m.PlayerDatas.All(p => p.Team != m.Winner);
+        //             if (m.IsTraining)
+        //                 m.PlayerDatas.ForEach(p =>
+        //                 {
+        //                     p.RatingChange = 0;
+        //                 });
+        //                 Console.WriteLine(i + " geschafft.");
+        //             i++;
+        //         });
+        //         db.SaveChanges();
+        // }
 
         // public static async void Seed()
         // {

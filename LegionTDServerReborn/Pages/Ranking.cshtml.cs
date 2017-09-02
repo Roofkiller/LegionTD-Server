@@ -22,32 +22,33 @@ namespace LegionTDServerReborn.Pages
         public List<Ranking> Ranking {get; set;}
         public List<Player> Players {get; set;}
 
-        public RankingModel(IConfiguration configuration)
+        private LegionTdContext _db;
+
+        public RankingModel(IConfiguration configuration, LegionTdContext db)
             :base(configuration) {
+            _db = db;
         }
 
         public void OnGet()
         {
-            using (var db = new LegionTdContext()) {
-                Ranking = db.Rankings
-                    .Where(r => r.Position >= 0 
-                        && r.Position <= 50)
-                    .ToList()
-                    .OrderBy(r => r.Position)
-                    .ToList();
+            Ranking = _db.Rankings
+                .Where(r => r.Position >= 0 
+                    && r.Position <= 50)
+                .ToList()
+                .OrderBy(r => r.Position)
+                .ToList();
 
-                var idList = Ranking.Select(r => r.PlayerId).ToArray();
-                var values = new StringBuilder();
-                values.Append(idList[0]);
-                for (int i = 0; i < idList.Length; i++) {
-                    values.Append($", {idList[i]}");
-                }
-                var sql = $"SELECT * FROM Players p WHERE SteamId IN ({values})";
-                var tmp = db.Players.Include(p => p.MatchDatas).FromSql(sql).AsNoTracking().ToList();
-                Players = new List<Player>();
-                for(int i = 0; i < Ranking.Count; i++) {
-                    Players.Add(tmp.First(p => p.SteamId == Ranking[i].PlayerId));
-                }
+            var idList = Ranking.Select(r => r.PlayerId).ToArray();
+            var values = new StringBuilder();
+            values.Append(idList[0]);
+            for (int i = 0; i < idList.Length; i++) {
+                values.Append($", {idList[i]}");
+            }
+            var sql = $"SELECT * FROM Players p WHERE SteamId IN ({values})";
+            var tmp = _db.Players.Include(p => p.MatchDatas).FromSql(sql).AsNoTracking().ToList();
+            Players = new List<Player>();
+            for(int i = 0; i < Ranking.Count; i++) {
+                Players.Add(tmp.First(p => p.SteamId == Ranking[i].PlayerId));
             }
             SteamPlayers = RequestPlayers(Ranking.Select(p => p.PlayerId).ToArray());
         }

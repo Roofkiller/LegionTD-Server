@@ -63,7 +63,7 @@
             @{
                 Func<PlayerMatchData, IHtmlContent> printMatch = 
                     @<tr class='clickable-row' data-href='/Match/@item.MatchId'>
-                        <td><img class='builder-icon' src='~/images/builder/@(item.FractionName + ".png")'></td>
+                        <td>@item.FractionName.ToBuilderIcon()</td>
                         <td>@item.Match.GetFormattedDate()</td>
                         <td>@item.Match.GetFormattedTime()</td>
                         <td>

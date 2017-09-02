@@ -9,8 +9,6 @@ namespace LegionTDServerReborn.Models
 {
     public class LegionTdContext : DbContext
     {
-        public static string ConnectionString {get; set;}
-
         public DbSet<Fraction> Fractions { get; set; }
         public DbSet<Unit> Units { get; set; }
 
@@ -20,24 +18,11 @@ namespace LegionTDServerReborn.Models
         public DbSet<PlayerMatchData> PlayerMatchDatas { get; set; }
         public DbSet<PlayerUnitRelation> PlayerUnitRelations { get; set; }
         public DbSet<Ranking> Rankings { get; set; }
-        public DbSet<FractionData> FractionDatas {get; set;}
-
-        public LegionTdContext()
-        {
-
-        }
 
         public LegionTdContext(DbContextOptions<LegionTdContext> options)
             :base (options) {
 
             }
-
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        {
-            base.OnConfiguring(optionsBuilder);
-//            optionsBuilder.UseMySql("Server=localhost;User Id=root;Password=root;Database=LegionTdDB");
-            optionsBuilder.UseMySql(ConnectionString);
-        }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -45,11 +30,13 @@ namespace LegionTDServerReborn.Models
             modelBuilder.Entity<Duel>().HasKey(d => new { d.MatchId, d.Order });
             modelBuilder.Entity<PlayerMatchData>().HasKey(d => new { d.MatchId, d.PlayerId });
             modelBuilder.Entity<PlayerUnitRelation>().HasKey(d => new { d.MatchId, d.PlayerId, d.UnitName });
-            modelBuilder.Entity<FractionData>().HasKey(d => new {d.MatchId, d.PlayerId, d.FractionName});
+            // modelBuilder.Entity<FractionData>().HasKey(d => new {d.MatchId, d.PlayerId, d.FractionName});
 
             modelBuilder.Entity<Player>().HasMany(p => p.MatchDatas).WithOne(m => m.Player).HasForeignKey(m => m.PlayerId);
             modelBuilder.Entity<PlayerMatchData>().HasMany(m => m.UnitDatas).WithOne(u => u.PlayerMatch).HasForeignKey(u => new {u.MatchId, u.PlayerId});
-            modelBuilder.Entity<PlayerMatchData>().HasMany(p => p.FractionDatas).WithOne(d => d.PlayerMatch).HasForeignKey(d => new {d.MatchId, d.PlayerId});
+            // modelBuilder.Entity<PlayerMatchData>().HasMany(p => p.FractionDatas).WithOne(d => d.PlayerMatch).HasForeignKey(d => new {d.MatchId, d.PlayerId});
+
+            modelBuilder.Entity<Unit>().HasOne(u => u.Parent).WithMany(p => p.Children).HasForeignKey(u => u.ParentName);
 
             modelBuilder.Entity<Match>().Property(m => m.MatchId).ValueGeneratedOnAdd();
 

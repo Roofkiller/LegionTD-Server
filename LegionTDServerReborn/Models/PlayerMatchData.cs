@@ -23,8 +23,8 @@ namespace LegionTDServerReborn.Models
 
         [InverseProperty("PlayerMatch")]
         public List<PlayerUnitRelation> UnitDatas { get; set; }
-        [InverseProperty("PlayerMatch")]
-        public List<FractionData> FractionDatas {get;set;}
+        // [InverseProperty("PlayerMatch")]
+        // public List<FractionData> FractionDatas {get;set;}
         public int RatingChange { get; set; }
         public int EarnedGold { get; set; }
         public int EarnedTangos { get; set; }

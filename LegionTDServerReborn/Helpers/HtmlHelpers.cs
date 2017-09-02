@@ -69,6 +69,10 @@ namespace LegionTDServerReborn.Helpers {
         public static HtmlString TeamToHtml(this IHtmlHelper html, int team) {
             return new HtmlString($"<span class='{team.GetTeamName().ToLower()}'>{team.GetTeamName()}</span>");
         }
+
+        public static HtmlString ToBuilderIcon(this string builder) {
+            return new HtmlString($"<a href='/Builder/{builder}'><img class='builder-icon' src='/images/builder/{builder}.png'></a>");
+        }
     }
 
 }

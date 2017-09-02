@@ -15,8 +15,11 @@ namespace LegionTDServerReborn.Pages
 
         private IConfiguration _configuration;
 
-        public MatchesModel(IConfiguration configuration) {
+        private LegionTdContext _db;
+
+        public MatchesModel(IConfiguration configuration, LegionTdContext db) {
             this._configuration = configuration;
+            _db = db;
         }
         
         public List<Match> Matches {get; set;}
@@ -32,14 +35,12 @@ namespace LegionTDServerReborn.Pages
         public void OnGet(int? site)
         {
             Site = site ?? 1;
-            using(var db = new LegionTdContext()) {
-                Matches = db.Matches.Include(m => m.PlayerDatas)
-                                    .Where(m => !m.IsTraining)
-                                    .OrderByDescending(m => m.MatchId)
-                                    .Skip((Site - 1) * MatchesPerSite)
-                                    .Take(MatchesPerSite).ToList();
-                MatchCount = db.Matches.Where(m => !m.IsTraining).Count();
-            }
+            Matches = _db.Matches.Include(m => m.PlayerDatas)
+                                .Where(m => !m.IsTraining)
+                                .OrderByDescending(m => m.MatchId)
+                                .Skip((Site - 1) * MatchesPerSite)
+                                .Take(MatchesPerSite).ToList();
+            MatchCount = _db.Matches.Where(m => !m.IsTraining).Count();
         }
     }
 }

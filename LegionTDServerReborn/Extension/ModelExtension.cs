@@ -1,5 +1,7 @@
 using LegionTDServerReborn.Models;
 using System;
+using System.Text;
+using System.Linq;
 
 namespace LegionTDServerReborn.Extension
 {
@@ -52,6 +54,30 @@ namespace LegionTDServerReborn.Extension
                 return "1 year ago";
             }
             return $"{Math.Floor(span.TotalDays / 365)} years ago";
+        }
+
+        public static string ToBuilderName(this Fraction fraction) {
+            return fraction.Name.FirstCharToUpper() + "builder";
+        }
+
+        public static string FirstCharToUpper(this string input)
+        {
+            if (String.IsNullOrEmpty(input))
+                throw new ArgumentException();
+            return input[0].ToString().ToUpper() + input.Substring(1);
+        }
+
+        public static string ToUnitName(this string input) {
+            if (string.IsNullOrEmpty(input)) {
+                return input;
+            }
+            var parts = input.Split('_');
+            int startIndex = input.StartsWith("tower_") ? 2 : 1;
+            var result = new StringBuilder();
+            for (int i = startIndex; i < parts.Length; i++) {
+                result.Append(parts[i].FirstCharToUpper() + " ");
+            }
+            return result.ToString();
         }
     }
 }

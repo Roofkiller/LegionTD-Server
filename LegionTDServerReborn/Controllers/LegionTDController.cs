@@ -27,6 +27,7 @@ namespace LegionTDServerReborn.Controllers
     public class LegionTdController : Controller
     {
         private readonly IMemoryCache _cache;
+        private LegionTdContext _db;
         private const string PlayerCountKey = "player_count";
 
 
@@ -35,8 +36,9 @@ namespace LegionTDServerReborn.Controllers
             base.Dispose(disposing);
         }
 
-        public LegionTdController(IMemoryCache cache)
+        public LegionTdController(LegionTdContext context, IMemoryCache cache)
         {
+            _db = context;
             _cache = cache;
         }
 
@@ -94,19 +96,15 @@ namespace LegionTDServerReborn.Controllers
             if (!matchId.HasValue) {
                 return Json(new MissingArgumentFailure());
             }
-            using (var db = new LegionTdContext()) {
-                return Json(await db.Matches.Include(m => m.Duels)
-                    .Include(m => m.PlayerDatas).SingleOrDefaultAsync(m => m.MatchId == matchId.Value));
-            }
+            return Json(await _db.Matches.Include(m => m.Duels)
+                .Include(m => m.PlayerDatas).SingleOrDefaultAsync(m => m.MatchId == matchId.Value));
         }
 
         public async Task<ActionResult> GetLastMatches(int? from, int? to) {
-            using(var db = new LegionTdContext()) {
-                return Json(await db.Matches.Where(m => !m.IsTraining)
-                                            .OrderByDescending(m => m.MatchId)
-                                            .Skip(from ?? 0)
-                                            .Take(to ?? 15).ToListAsync());
-            }
+            return Json(await _db.Matches.Where(m => !m.IsTraining)
+                                        .OrderByDescending(m => m.MatchId)
+                                        .Skip(from ?? 0)
+                                        .Take(to ?? 15).ToListAsync());
         }
 
         public async Task<ActionResult> GetMatchHistory(long? steamId, int? from, int? to)
@@ -132,11 +130,7 @@ namespace LegionTDServerReborn.Controllers
         {
             if (!steamId.HasValue || rankingType == RankingTypes.Invalid)
                 return Json(new InvalidRequestFailure());
-            int rank;
-            using (var db = new LegionTdContext())
-            {
-                rank = (await db.Rankings.FindAsync(rankingType, asc, steamId))?.Position ?? -1;
-            }
+            int rank = (await _db.Rankings.FindAsync(rankingType, asc, steamId))?.Position ?? -1;
             return Json(new
             {
                 Rank = rank,
@@ -150,15 +144,11 @@ namespace LegionTDServerReborn.Controllers
             if (rankingType == RankingTypes.Invalid)
                 return Json(new InvalidRequestFailure());
             var playerCount = await GetPlayerCount();
-            List<Ranking> ranking;
-            using (var db = new LegionTdContext())
-            {
-                int lower = (from ?? 0);
-                int upper = (to + 1 ?? int.MaxValue);
-                ranking = (await db.Rankings.Where(r => r.Position <= upper
-                                                    && r.Position >= lower)
-                                            .ToListAsync()).OrderBy(d => d.Position).ToList();
-            }
+            int lower = (from ?? 0);
+            int upper = (to + 1 ?? int.MaxValue);
+            var ranking = (await _db.Rankings.Where(r => r.Position <= upper
+                                            && r.Position >= lower)
+                                        .ToListAsync()).OrderBy(d => d.Position).ToList();
             var result = await GetRankingData(ranking);
             var response = new RankingResponse {PlayerCount = playerCount, Ranking = result};
             return Json(response);
@@ -167,41 +157,32 @@ namespace LegionTDServerReborn.Controllers
         private async Task<List<PlayerRankingResponse>> GetRankingData(List<Ranking> ranking)
         {
             var ids = ranking.Select(r => r.PlayerId).ToArray();
-            using (var db = new LegionTdContext())
-            {
-                List<PlayerRankingResponse> result = new List<PlayerRankingResponse>();
-                var query = GetFullPlayerQueryable(db);
-                var values = new StringBuilder();
-                values.Append(ids[0]);
-                for (int i = 0; i < ids.Length; i++) {
-                    values.Append($", {ids[i]}");
-                }
-                var sql = $"SELECT * FROM Players p WHERE SteamId IN ({values})";
-                var players = await query.FromSql(sql).ToListAsync();
-                foreach(var rang in ranking) {
-                    result.Add(new PlayerRankingResponse(players.First(p => p.SteamId == rang.PlayerId), rang.Position - 1));
-                }
-                return result;
+            List<PlayerRankingResponse> result = new List<PlayerRankingResponse>();
+            var query = GetFullPlayerQueryable(_db);
+            var values = new StringBuilder();
+            values.Append(ids[0]);
+            for (int i = 0; i < ids.Length; i++) {
+                values.Append($", {ids[i]}");
             }
+            var sql = $"SELECT * FROM Players p WHERE SteamId IN ({values})";
+            var players = await query.FromSql(sql).ToListAsync();
+            foreach(var rang in ranking) {
+                result.Add(new PlayerRankingResponse(players.First(p => p.SteamId == rang.PlayerId), rang.Position - 1));
+            }
+            return result;
         }
 
         private async Task<Player> GetPlayer(long steamId)
         {
-            using (var db = new LegionTdContext())
-            {
-                return await GetFullPlayerQueryable(db).FirstOrDefaultAsync(p => p.SteamId == steamId);
-            }
+            return await GetFullPlayerQueryable(_db).FirstOrDefaultAsync(p => p.SteamId == steamId);
         }
 
         public async Task<int> GetPlayerCount()
         {
             if (_cache.TryGetValue(PlayerCountKey, out int result))
                 return result;
-            using (var db = new LegionTdContext())
-            {
-                result = await db.Players.CountAsync();
-                _cache.Set(PlayerCountKey, result, DateTimeOffset.Now.AddDays(1));
-            }
+            result = await _db.Players.CountAsync();
+            _cache.Set(PlayerCountKey, result, DateTimeOffset.Now.AddDays(1));
             return result;
         }
 
@@ -237,49 +218,47 @@ namespace LegionTDServerReborn.Controllers
         {
             string key = type + "|" + asc;
             _cache.Set(key, true, DateTimeOffset.Now.AddDays(1));
-            using (var db = new LegionTdContext())
+
+            await _db.Database.ExecuteSqlCommandAsync($"DELETE FROM Rankings WHERE Type = {(int) type} AND Ascending = {(asc ? 1 : 0)}");
+            Console.WriteLine($"Cleared Ranking for {type} {asc}");
+            string sql;
+            string sqlSelects = "";
+            string sqlJoins = "JOIN Matches AS m \n" +
+                                "ON m.MatchId = pm.MatchId \n";
+            string sqlOrderBy = "";
+            string sqlWheres = "WHERE m.IsTraining = FALSE \n";
+            switch (type)
             {
-                await db.Database.ExecuteSqlCommandAsync($"DELETE FROM Rankings WHERE Type = {(int) type} AND Ascending = {(asc ? 1 : 0)}");
-                Console.WriteLine($"Cleared Ranking for {type} {asc}");
-                string sql;
-                string sqlSelects = "";
-                string sqlJoins = "JOIN Matches AS m \n" +
-                                  "ON m.MatchId = pm.MatchId \n";
-                string sqlOrderBy = "";
-                string sqlWheres = "WHERE m.IsTraining = FALSE \n";
-                switch (type)
-                {
-                    case RankingTypes.EarnedTangos:
-                        sqlSelects = ", SUM(EarnedTangos) AS Gold \n";
-                        sqlOrderBy = "ORDER BY Gold "+ (asc? "ASC" : "DESC") +" \n";
-                        break;
-                    case RankingTypes.EarnedGold:
-                        sqlSelects = ", SUM(EarnedGold) AS Gold \n";
-                        sqlOrderBy = "ORDER BY Gold "+ (asc? "ASC" : "DESC") +" \n";
-                        break;
-                    case RankingTypes.Rating:
-                    default:
-                        sqlSelects = ", SUM(RatingChange) AS Rating \n";
-                        sqlOrderBy = "ORDER BY Rating "+ (asc? "ASC" : "DESC") +" \n";
-                        sqlJoins = "";
-                        sqlWheres = "";
-                        break;
-                }
-                sql = "INSERT INTO Rankings \n" +
-                    "(Type, Ascending, PlayerId, Position) \n" +
-                    $"SELECT @t := {(int)type}, @a := {(asc ? "TRUE" : "FALSE")}, PlayerId, @rownum := @rownum + 1 AS position\n" +
-                    "FROM (SELECT PlayerId \n" +
-                    sqlSelects +
-                    "FROM PlayerMatchDatas AS pm \n" +
-                    sqlJoins +
-                    sqlWheres +
-                    "GROUP BY pm.PlayerId \n" +
-                    sqlOrderBy +
-                    ") AS pr, \n" +
-                    "(SELECT @rownum := 0) AS r \n";
-                await db.Database.ExecuteSqlCommandAsync(sql);
-                Console.WriteLine($"Updated ranking for {type} {asc}");
+                case RankingTypes.EarnedTangos:
+                    sqlSelects = ", SUM(EarnedTangos) AS Gold \n";
+                    sqlOrderBy = "ORDER BY Gold "+ (asc? "ASC" : "DESC") +" \n";
+                    break;
+                case RankingTypes.EarnedGold:
+                    sqlSelects = ", SUM(EarnedGold) AS Gold \n";
+                    sqlOrderBy = "ORDER BY Gold "+ (asc? "ASC" : "DESC") +" \n";
+                    break;
+                case RankingTypes.Rating:
+                default:
+                    sqlSelects = ", SUM(RatingChange) AS Rating \n";
+                    sqlOrderBy = "ORDER BY Rating "+ (asc? "ASC" : "DESC") +" \n";
+                    sqlJoins = "";
+                    sqlWheres = "";
+                    break;
             }
+            sql = "INSERT INTO Rankings \n" +
+                "(Type, Ascending, PlayerId, Position) \n" +
+                $"SELECT @t := {(int)type}, @a := {(asc ? "TRUE" : "FALSE")}, PlayerId, @rownum := @rownum + 1 AS position\n" +
+                "FROM (SELECT PlayerId \n" +
+                sqlSelects +
+                "FROM PlayerMatchDatas AS pm \n" +
+                sqlJoins +
+                sqlWheres +
+                "GROUP BY pm.PlayerId \n" +
+                sqlOrderBy +
+                ") AS pr, \n" +
+                "(SELECT @rownum := 0) AS r \n";
+            await _db.Database.ExecuteSqlCommandAsync(sql);
+            Console.WriteLine($"Updated ranking for {type} {asc}");
         }
 
 
@@ -313,28 +292,25 @@ namespace LegionTDServerReborn.Controllers
             Debug.WriteLine("The following is the unit data: ");
             Debug.WriteLine(data);
             var unitData = JObject.Parse(data);
+            var units = new List<Unit>();
             foreach (var pair in unitData)
             {
                 string unitName = pair.Key;
-                int experience = int.Parse(pair.Value["experience"].Value<string>());
-                string fraction = pair.Value["fraction"].Value<string>();
-                await UpdateOrInsertUnit(unitName, fraction, experience);
-            }
-            return Json(new {Success = true});
-        }
-
-        private async Task<Unit> UpdateOrInsertUnit(string name, string fraction, int experience)
-        {
-            Unit unit = await GetOrCreateUnit(name);
-            using (var db = new LegionTdContext())
-            {
+                string fraction;
+                try {
+                    fraction = pair.Value["LegionFraction"].Value<string>();
+                } catch(Exception) {
+                    fraction = "other";
+                }
+                Unit unit = await GetOrCreateUnit(unitName);
                 unit.Fraction = await GetOrCreateFraction(fraction);
-                unit.Experience = experience;
-                db.Entry(unit).State = EntityState.Modified;
-                db.Entry(unit.Fraction).State = EntityState.Modified;
-                await db.SaveChangesAsync();
+                unit.UpdateValues(pair.Value);
+                units.Add(unit);
             }
-            return unit;
+            _db.UpdateRange(units.Select(u => u.Fraction).ToArray());
+            _db.UpdateRange(units.ToArray());
+            await _db.SaveChangesAsync();
+            return Json(new {Success = true});
         }
 
         public async Task<ActionResult> SaveMatchData(int? winner, string playerDataString, float duration,
@@ -402,30 +378,24 @@ namespace LegionTDServerReborn.Controllers
 
         private async Task DecideIsTraining(Match match)
         {
-            using (var db = new LegionTdContext())
-            {
-                var ma = await db.Matches.Include(m => m.PlayerDatas).SingleAsync(m => m.MatchId == match.MatchId);
-                ma.IsTraining = ma.PlayerDatas.All(p => p.Team == match.Winner) ||
-                                ma.PlayerDatas.All(p => p.Team != match.Winner);
-                db.Entry(ma).State = EntityState.Modified;
-                await db.SaveChangesAsync();
-            }
+            var ma = await _db.Matches.Include(m => m.PlayerDatas).SingleAsync(m => m.MatchId == match.MatchId);
+            ma.IsTraining = ma.PlayerDatas.All(p => p.Team == match.Winner) ||
+                            ma.PlayerDatas.All(p => p.Team != match.Winner);
+            _db.Entry(ma).State = EntityState.Modified;
+            await _db.SaveChangesAsync();
         }
         
         private async Task ModifyRatings(List<PlayerMatchData> playerMatchDatas, Match match)
         {
-            using (var db = new LegionTdContext())
-            {
-                var l = new List<Player>();
-                foreach (var pl in playerMatchDatas)
-                    l.Add(await db.Players
-                        .Include(p => p.MatchDatas)
-                        .ThenInclude(m => m.Match.PlayerDatas)
-                        .SingleAsync(player => player.SteamId == pl.PlayerId));
-                foreach (var p in l.Select(p => p.MatchDatas.Single(m => m.MatchId == match.MatchId)))
-                    p.RatingChange = p.CalculateRatingChange();
-                await db.SaveChangesAsync();
-            }
+            var l = new List<Player>();
+            foreach (var pl in playerMatchDatas)
+                l.Add(await _db.Players
+                    .Include(p => p.MatchDatas)
+                    .ThenInclude(m => m.Match.PlayerDatas)
+                    .SingleAsync(player => player.SteamId == pl.PlayerId));
+            foreach (var p in l.Select(p => p.MatchDatas.Single(m => m.MatchId == match.MatchId)))
+                p.RatingChange = p.CalculateRatingChange();
+            await _db.SaveChangesAsync();
         }
 
         private async Task<Duel> CreateDuel(Match match, int order, int winner, float time)
@@ -437,11 +407,8 @@ namespace LegionTDServerReborn.Controllers
                 Winner = winner,
                 TimeStamp = time
             };
-            using (var db = new LegionTdContext())
-            {
-                db.Duels.Add(duel);
-                await db.SaveChangesAsync();
-            }
+            _db.Duels.Add(duel);
+            await _db.SaveChangesAsync();
             return duel;
         }
 
@@ -485,148 +452,109 @@ namespace LegionTDServerReborn.Controllers
                 relations[unitName] = relation;
                 UnitRelationFunctions[type].Invoke(relation, count);
             }
-            List<PlayerUnitRelation> result = relations.Select(p => p.Value).ToList();
-            using (var db = new LegionTdContext())
-            {
-                result.ForEach(r => db.Entry(r.Unit).State = EntityState.Modified);
-                db.Entry(playerMatchData).State = EntityState.Modified;
-                db.PlayerUnitRelations.AddRange(result);
-                
-                //Calculating Match statistics
-                var p = await db.PlayerMatchDatas
-                    .Include(pd => pd.UnitDatas)
-                    .ThenInclude(r => r.Unit)
-                    .Include(pd => pd.Match)
-                    .ThenInclude(pd => pd.Duels)
-                    .SingleAsync(pd => pd.MatchId == playerMatchData.MatchId && pd.PlayerId == playerMatchData.PlayerId);
-                p.CalculateStats();
-                db.Update(p);
+            List<PlayerUnitRelation> result = relations.Values.ToList();
 
-                await db.SaveChangesAsync();
-            }
+            result.ForEach(r => _db.Entry(r.Unit).State = EntityState.Modified);
+            _db.Entry(playerMatchData).State = EntityState.Modified;
+            _db.PlayerUnitRelations.AddRange(result);
+            
+            //Calculating Match statistics
+            var p = await _db.PlayerMatchDatas
+                .Include(pd => pd.UnitDatas)
+                .ThenInclude(r => r.Unit)
+                .Include(pd => pd.Match)
+                .ThenInclude(pd => pd.Duels)
+                .SingleAsync(pd => pd.MatchId == playerMatchData.MatchId && pd.PlayerId == playerMatchData.PlayerId);
+            p.CalculateStats();
+            _db.Update(p);
+
+            await _db.SaveChangesAsync();
+
             return result;
         }
 
-        // private async Task<FractionData> GetOrCreateFractionData(long steamId, int matchId, string fractionName)
-        // {
-        //     using (var db = new LegionTdContext())
-        //     {
-        //         FractionData data = await db.FractionDatas.FindAsync(steamId, fractionName);
-        //         if (data == null)
-        //         {
-        //             data = new FractionData
-        //             {
-        //                 Player = await GetOrCreatePlayer(steamId),
-        //                 Fraction = await GetOrCreateFraction(fractionName),
-        //                 Killed = 0,
-        //                 Played = 0
-        //             };
-        //             db.Update(data.Player);
-        //             db.Update(data.Fraction);
-        //             db.Add(data);
-        //             await db.SaveChangesAsync();
-        //         }
-        //         return data;
-        //     }
-        // }
-
         private async Task<Unit> GetOrCreateUnit(string unitName)
         {
-            using (var db = new LegionTdContext())
+            Unit unit = await _db.Units.FindAsync(unitName);
+            if (unit == null)
             {
-                Unit unit = await db.Units.FindAsync(unitName);
-                if (unit == null)
+                unit = new Unit
                 {
-                    unit = new Unit
-                    {
-                        Name = unitName,
-                        Experience = 0
-                    };
-                    unit.SetTypeByName();
-                    string fraction = unit.GetFractionByName();
-                    unit.Fraction = await GetOrCreateFraction(fraction);
-                    db.UpdateRange(unit.Fraction);
-                    db.Units.Add(unit);
-                    await db.SaveChangesAsync();
-                }
-                return unit;
+                    Name = unitName,
+                    Experience = 0
+                };
+                unit.SetTypeByName();
+                string fraction = unit.GetFractionByName();
+                unit.Fraction = await GetOrCreateFraction(fraction);
+                _db.UpdateRange(unit.Fraction);
+                _db.Units.Add(unit);
+                await _db.SaveChangesAsync();
             }
+            return unit;
         }
 
         private async Task<Fraction> GetOrCreateFraction(string name)
         {
-            using (var db = new LegionTdContext())
+            Fraction result = await _db.Fractions.FindAsync(name);
+            if (result == null)
             {
-                Fraction result = await db.Fractions.FindAsync(name);
-                if (result == null)
-                {
-                    result = new Fraction {Name = name};
-                    db.Fractions.Add(result);
-                    await db.SaveChangesAsync();
-                }
-                return result;
+                result = new Fraction {Name = name};
+                _db.Fractions.Add(result);
+                await _db.SaveChangesAsync();
             }
+            return result;
         }
 
         private async Task<PlayerMatchData> CreatePlayerMatchData(Player player, Match match, string fraction, int team,
             bool abandoned, int earnedTangos, int earnedGold)
         {
-            using (var db = new LegionTdContext())
+            PlayerMatchData result = new PlayerMatchData
             {
-                PlayerMatchData result = new PlayerMatchData
-                {
-                    Player = player,
-                    Match = match,
-                    Abandoned = abandoned,
-                    Team = team,
-                    Fraction = await GetOrCreateFraction(fraction),
-                    EarnedTangos = earnedTangos,
-                    EarnedGold = earnedGold
-                };
-                db.Entry(player).State = EntityState.Modified;
-                db.Entry(match).State = EntityState.Modified;
-                db.Entry(result.Fraction).State = EntityState.Modified;
-                db.PlayerMatchDatas.Add(result);
+                Player = player,
+                Match = match,
+                Abandoned = abandoned,
+                Team = team,
+                Fraction = await GetOrCreateFraction(fraction),
+                EarnedTangos = earnedTangos,
+                EarnedGold = earnedGold
+            };
+            _db.Entry(player).State = EntityState.Modified;
+            _db.Entry(match).State = EntityState.Modified;
+            _db.Entry(result.Fraction).State = EntityState.Modified;
+            _db.PlayerMatchDatas.Add(result);
 
-                await db.SaveChangesAsync();
-                return result;
-            }
+            await _db.SaveChangesAsync();
+            return result;
         }
 
         private async Task<Match> CreateMatch(int winner, float duration, int lastWave)
         {
-            using (var db = new LegionTdContext())
+            Match match = new Match
             {
-                Match match = new Match
-                {
-                    Winner = winner,
-                    Duration = duration,
-                    LastWave = lastWave,
-                    Date = DateTime.Now,
-                    IsTraining = true
-                };
-                db.Matches.Add(match);
-                await db.SaveChangesAsync();
-                return match;
-            }
+                Winner = winner,
+                Duration = duration,
+                LastWave = lastWave,
+                Date = DateTime.Now,
+                IsTraining = true
+            };
+            _db.Matches.Add(match);
+            await _db.SaveChangesAsync();
+            return match;
         }
 
         private async Task<Player> GetOrCreatePlayer(long steamId)
         {
-            using (var db = new LegionTdContext())
+            Player result = await _db.Players.FindAsync(steamId);
+            if (result == null)
             {
-                Player result = await db.Players.FindAsync(steamId);
-                if (result == null)
+                result = new Player
                 {
-                    result = new Player
-                    {
-                        SteamId = steamId,
-                    };
-                    db.Players.Add(result);
-                    await db.SaveChangesAsync();
-                }
-                return result;
+                    SteamId = steamId,
+                };
+                _db.Players.Add(result);
+                await _db.SaveChangesAsync();
             }
+            return result;
         }
     }
 }

@@ -16,27 +16,23 @@ using Newtonsoft.Json.Linq;
 
 namespace LegionTDServerReborn.Pages
 {
-    public class PlayerModel : SteamApiModel
+    public class BuilderModel : SteamApiModel
     {
-        public long PlayerId {get; set;}
+        public string BuilderName {get; set;}
 
-        public Player Player {get; set;}
-
-        public SteamPlayer SteamPlayer {get; set;}
+        public Fraction Builder {get; set;}
 
         private LegionTdContext _db;
 
-        public PlayerModel(IConfiguration configuration, LegionTdContext db)
+        public BuilderModel(IConfiguration configuration, LegionTdContext db)
             :base(configuration) {
                 _db = db;
-        }
+            }
 
-        public void OnGet(long? playerId)
+        public void OnGet(string builder)
         {
-            if (!playerId.HasValue) return;
-            PlayerId = playerId.Value;
-            Player = _db.Players.Include(p => p.MatchDatas).ThenInclude(m => m.Match).Single(p => p.SteamId == PlayerId);
-            SteamPlayer = RequestPlayers(PlayerId)[PlayerId];
+            BuilderName = builder ?? "";
+            Builder = _db.Fractions.Include(b => b.Units).Single(f => f.Name == BuilderName);
         }
     }
 }

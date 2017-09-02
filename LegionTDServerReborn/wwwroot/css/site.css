@@ -91,3 +91,7 @@ a.matches-site{
 .builder-icon {
     height: 28px;
 }
+
+.builder-icon-big {
+    height: 48px;
+}

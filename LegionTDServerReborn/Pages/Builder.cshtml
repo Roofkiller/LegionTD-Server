@@ -1,0 +1,88 @@
+@page "{builder}"
+@using LegionTDServerReborn.Models
+@using LegionTDServerReborn.Extension
+@using LegionTDServerReborn.Helpers
+@using Microsoft.AspNetCore.Html
+@model BuilderModel
+@{
+    ViewData["Title"] = @Model.Builder.ToBuilderName();
+}
+
+<div class='container'>
+    <div class='row match-header '>
+        <div class='col-lg-5 col-md-5 match-title'>
+            <span class='match-title'><img class='builder-icon-big' src='~/images/builder/@(Model.BuilderName + ".png")'> @ViewData["Title"]</span>
+        </div>
+        <div class='col-lg-8 col-md-8 col-sm-12 col-xs-12' style="">
+            <div class='container-fluid' id='match_info' style="">
+            </div>
+        </div>
+    </div>
+</div>
+
+<h3>Units</h3>
+<div class='table-responsive'>
+    <table class='table table-striped'>
+        <thead>
+            <td>
+                Unit
+            </td>
+            <td>
+                Health
+            </td>
+            <td>
+                Armor
+            </td>
+            <td>
+                Attack Damage
+            </td>
+            <td>
+                Attack Rate
+            </td>
+            <td>
+                DPS
+            </td>
+            <td>
+                Attack Range
+            </td>
+        </thead>
+        <tbody>
+            @foreach(var unit in Model.Builder.Units) {
+                <tr>
+                    <td>
+                        @unit.Name.ToUnitName()
+                    </td>
+                    <td>
+                        @unit.StatusHealth
+                    </td>
+                    <td>
+                        @unit.ArmorPhysical
+                    </td>
+                    <td>
+                        @((unit.AttackDamageMin + unit.AttackDamageMax)/2)
+                    </td>
+                    <td>
+                        @unit.AttackRate
+                    </td>
+                    <td>
+                        @((unit.AttackDamageMin + unit.AttackDamageMax)/2 * unit.AttackRate)
+                    </td>
+                    <td>
+                        @unit.AttackRange
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+
+@section scripts {
+    <script>
+        $(function () {
+            $(".clickable-row").click(function() {
+                    window.location = $(this).data("href");
+                });
+        });
+    </script>
+}

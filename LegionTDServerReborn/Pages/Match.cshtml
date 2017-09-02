@@ -45,7 +45,7 @@
                 </a>
             </td>
             <td>
-                <img class='builder-icon' src='~/images/builder/@(item.FractionName + ".png")'>
+                @item.FractionName.ToBuilderIcon()
             </td>
             <td class='text-center'>
                 @if (item.Abandoned) {
