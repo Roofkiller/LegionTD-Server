@@ -22,6 +22,8 @@ namespace LegionTDServerReborn.Pages
 
         public Fraction Builder {get; set;}
 
+        public FractionStatistic Statistic {get; set;}
+
         private LegionTdContext _db;
 
         public BuilderModel(IConfiguration configuration, LegionTdContext db)
@@ -32,7 +34,8 @@ namespace LegionTDServerReborn.Pages
         public void OnGet(string builder)
         {
             BuilderName = builder ?? "";
-            Builder = _db.Fractions.Include(b => b.Units).Single(f => f.Name == BuilderName);
+            Builder = _db.Fractions.Include(b => b.Units).Include(b => b.Statistics).Single(f => f.Name == BuilderName);
+            Statistic = Builder.CurrentStatistic;
         }
     }
 }

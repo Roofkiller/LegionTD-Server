@@ -8,12 +8,12 @@
     ViewData["Title"] = "Match #" + @Model.MatchId;
 }
 
-<div class='match-header container'>
+<div class='match-header row'>
     <div class='col-lg-3 col-md-4 match-title'>
         <span class='match-title'>Match #@Model.MatchId</span>
     </div>
     <div class='col-lg-9 col-md-8 col-sm-12 col-xs-12' style="">
-        <div class='container-fluid' id='match_info' style="">
+        <div id='match_info' style="">
             @{
                 var data = new Dictionary<string, string>();
                 data["Date"] = @Model.Match.GetFormattedDate();
@@ -24,8 +24,8 @@
 
                 foreach(var pair in data) {
                     <div class='col-md-3 col-sm-3 col-xs-6 match-info'>
-                        <p class='match-info-title'>@pair.Key</p>
-                        <p class='match-info-value'>@Html.Raw(pair.Value)</p>
+                        <p class='match-info-title text-center'>@pair.Key</p>
+                        <p class='match-info-value text-center'>@Html.Raw(pair.Value)</p>
                     </div>
                 }
             }
@@ -44,7 +44,7 @@
                     @Model.Players[item.PlayerId].PersonaName
                 </a>
             </td>
-            <td>
+            <td class='text-center'>
                 @item.FractionName.ToBuilderIcon()
             </td>
             <td class='text-center'>
@@ -52,19 +52,19 @@
                     <i class="fa fa-times dire" aria-hidden="true"></i>
                 }
             </td>
-            <td>
+            <td class='text-center'>
                 @Html.FormatRatingChange(item.RatingChange)
             </td>
-            <td>
+            <td class='text-right'>
                 @item.Experience
             </td>
-            <td>
+            <td class='text-right'>
                 @item.Kills
             </td>
-            <td>
+            <td class='text-right'>
                 @item.Leaks
             </td>
-            <td>
+            <td class='text-right'>
                 @item.Builds
             </td>
         </tr>;
@@ -81,32 +81,34 @@
 
         <div class='table-responsive'>
             <table class='match-player-table table table-responsive table-striped table-hover'>
-                <col width="20%"><col width="10%"><col width="10%"><col width="15%"><col width="15%"><col width="10%"><col width="10%"><col width="10%">
+                <col width="20%"><col width="10%"><col width="10%"><col width="12%"><col width="12%"><col width="12%"><col width="12%"><col width="12%">
                 <thead>
-                    <td>
-                        Player
-                    </td>
-                    <td>
-                        Builder
-                    </td>
-                    <td>
-                        Abandoned
-                    </td>
-                    <td>
-                        Rating
-                    </td>
-                    <td>
-                        Experience
-                    </td>
-                    <td>
-                        Kills
-                    </td>
-                    <td>
-                        Leaks
-                    </td>
-                    <td>
-                        Builds
-                    </td>
+                    <tr>
+                        <th>
+                            Player
+                        </th>
+                        <th class='text-center'>
+                            Builder
+                        </th>
+                        <th class='text-center'>
+                            Abandoned
+                        </th>
+                        <th class='text-center'>
+                            Rating
+                        </th>
+                        <th class='text-right'>
+                            Experience
+                        </th>
+                        <th class='text-right'>
+                            Kills
+                        </th>
+                        <th class='text-right'>
+                            Leaks
+                        </th>
+                        <th class='text-right'>
+                            Builds
+                        </th>
+                    </tr>
                 </thead>
                 <tbody>
                     @{
@@ -124,16 +126,18 @@
 @if (Model.Match.Duels.Count > 0) {
     <h3>Duels</h3>
     <div class='table-responsive'>
-        <table class="table table-striped text-center">
+        <table class="table table-striped table-hover">
             <thead>
-                <td class='text-left'>
-                    Team
-                </td>
-                @foreach (var duel in Model.Match.Duels) {
-                    <td>
-                        Duel @duel.Order
-                    </td>
-                }
+                <tr>
+                    <th class='text-left'>
+                        Team
+                    </th>
+                    @foreach (var duel in Model.Match.Duels) {
+                        <th class='text-center'>
+                            Duel @duel.Order
+                        </th>
+                    }
+                </tr>
             </thead>
             <tbody>
                 <tr>
@@ -141,7 +145,7 @@
                         Radiant
                     </td>
                     @foreach(var duel in Model.Match.Duels) {
-                        <td>
+                        <td class='text-center'>
                             @if (duel.Winner == 2) {
                                     <i class="fa fa-times radiant" aria-hidden="true"></i>
                             }
@@ -153,7 +157,7 @@
                         Dire
                     </td>
                     @foreach(var duel in Model.Match.Duels) {
-                        <td>
+                        <td class='text-center'>
                             @if (duel.Winner == 3) {
                                     <i class="fa fa-times dire" aria-hidden="true"></i>
                             }

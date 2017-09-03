@@ -8,13 +8,27 @@
     ViewData["Title"] = @Model.Builder.ToBuilderName();
 }
 
-<div class='container'>
+<div class='row'>
     <div class='row match-header '>
-        <div class='col-lg-5 col-md-5 match-title'>
+        <div class='col-lg-5 col-md-4 match-title'>
             <span class='match-title'><img class='builder-icon-big' src='~/images/builder/@(Model.BuilderName + ".png")'> @ViewData["Title"]</span>
         </div>
-        <div class='col-lg-8 col-md-8 col-sm-12 col-xs-12' style="">
-            <div class='container-fluid' id='match_info' style="">
+        <div class='col-lg-7 col-md-8 col-sm-12 col-xs-12' style="">
+            <div id='match_info' style="">
+                    @{
+                        var dictionary = new Dictionary<string, string>();
+                        dictionary["Pick Rate"] = $"{Model.Statistic.PickRate*100:00.00}%";
+                        dictionary["Games Today"] = $"<span class='radiant'>{@Model.Statistic.WonGames}</span> - <span class='dire'>{@Model.Statistic.LostGames}</span>";
+                        dictionary["Win Rate"] = $"{Model.Statistic.WinRate*100:00.00}%";
+                        <div class='row'>
+                            @foreach (var pair in dictionary) {
+                                <div class='col-md-3 col-sm-3 col-xs-6 match-info'>
+                                    <p class='match-info-title text-center'>@pair.Key</p>
+                                    <p class='match-info-value text-center'>@Html.Raw(pair.Value)</p>
+                                </div>
+                            }
+                        </div>
+                    }
             </div>
         </div>
     </div>
@@ -23,33 +37,42 @@
 <h3>Units</h3>
 <div class='table-responsive'>
     <table class='table table-striped'>
+        <col width='22%'>
+        <col width='13%'>
+        <col width='13%'>
+        <col width='13%'>
+        <col width='13%'>
+        <col width='13%'>
+        <col width='13%'>
         <thead>
-            <td>
-                Unit
-            </td>
-            <td>
-                Health
-            </td>
-            <td>
-                Armor
-            </td>
-            <td>
-                Attack Damage
-            </td>
-            <td>
-                Attack Rate
-            </td>
-            <td>
-                DPS
-            </td>
-            <td>
-                Attack Range
-            </td>
+            <tr>
+                <th class='text-left'>
+                    Unit
+                </th>
+                <th class='text-right'>
+                    Health
+                </th>
+                <th class='text-right'>
+                    Armor
+                </th>
+                <th class='text-right'>
+                    Attack Damage
+                </th>
+                <th class='text-right'>
+                    Attack Rate
+                </th>
+                <th class='text-right'>
+                    DPS
+                </th>
+                <th class='text-right'>
+                    Attack Range
+                </th>
+            </tr>
         </thead>
         <tbody>
             @foreach(var unit in Model.Builder.Units) {
-                <tr>
-                    <td>
+                <tr class='text-right'>
+                    <td class='text-left'>
                         @unit.Name.ToUnitName()
                     </td>
                     <td>
@@ -59,13 +82,13 @@
                         @unit.ArmorPhysical
                     </td>
                     <td>
-                        @((unit.AttackDamageMin + unit.AttackDamageMax)/2)
+                        @((int)((unit.AttackDamageMin + unit.AttackDamageMax)/2))
                     </td>
                     <td>
-                        @unit.AttackRate
+                        @unit.AttackRate.ToString("0.00")
                     </td>
                     <td>
-                        @((unit.AttackDamageMin + unit.AttackDamageMax)/2 * unit.AttackRate)
+                        @((int)((unit.AttackDamageMin + unit.AttackDamageMax)/2 * unit.AttackRate))
                     </td>
                     <td>
                         @unit.AttackRange

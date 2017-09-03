@@ -15,6 +15,9 @@ namespace LegionTDServerReborn.Models
         public long SteamId { get; set; }
         [InverseProperty("Player")]
         public List<PlayerMatchData> MatchDatas { get; set; }
+        [InverseProperty("Player")]
+        public List<Ranking> Rankings {get; set;}
+        public Ranking Ranking => Rankings.FirstOrDefault(r => r.Type == RankingTypes.Rating);
         public int Rating => DefaultRating + MatchDatas.Sum(m => m.RatingChange);
         public float TimePlayed => MatchDatas.Where(m => !m.Match.IsTraining).Sum(m => m.Match.Duration);
         public long EarnedTangos => MatchDatas.Where(m => !m.Match.IsTraining).Sum(m => m.EarnedTangos);

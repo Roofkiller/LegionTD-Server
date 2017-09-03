@@ -45,12 +45,14 @@ namespace LegionTDServerReborn.Controllers
         private static class GetMethods
         {
             public const string Info = "info";
-            public const string RankingPosition = "ranking_position";
-            public const string RankingPositions = "ranking_positions";
-            public const string Ranking = "ranking";
+            public const string LastMatches = "last_matches";
             public const string MatchHistory = "match_history";
             public const string MatchInfo = "match_info";
-            public const string LastMatches = "last_matches";
+            public const string Ranking = "ranking";
+            public const string RankingPosition = "ranking_position";
+            public const string RankingPositions = "ranking_positions";
+            public const string UpdateFractionStatistics = "update_fractions";
+            public const string UpdateRanking = "update_ranking";
         }
 
         private static readonly Dictionary<string, RankingTypes> RankingTypeDict = new Dictionary<string, RankingTypes>
@@ -68,10 +70,13 @@ namespace LegionTDServerReborn.Controllers
         public async Task<ActionResult> Get(string method, long? steamId, string rankingType, int? from, int? to,
             bool ascending, string steamIds, int? matchId)
         {
-            await CheckUpdateRankings();
             var rType = !string.IsNullOrEmpty(rankingType) && RankingTypeDict.ContainsKey(rankingType) ? RankingTypeDict[rankingType] : RankingTypes.Invalid;
             switch (method)
             {
+                case GetMethods.UpdateRanking:
+                    return await UpdateRankings();
+                case GetMethods.UpdateFractionStatistics:
+                    return await UpdateFractionStatistics();
                 case GetMethods.Info:
                     return await GetPlayerInfo(steamId);
                 case GetMethods.Ranking:
@@ -214,6 +219,11 @@ namespace LegionTDServerReborn.Controllers
                 await task;
         }
 
+        private async Task<ActionResult> UpdateRankings() {
+            await UpdateRanking(RankingTypes.Rating, false);
+            return Json(new {success = true});
+        }
+
         private async Task UpdateRanking(Models.RankingTypes type, bool asc)
         {
             string key = type + "|" + asc;
@@ -260,6 +270,50 @@ namespace LegionTDServerReborn.Controllers
             await _db.Database.ExecuteSqlCommandAsync(sql);
             Console.WriteLine($"Updated ranking for {type} {asc}");
         }
+
+        private async Task<ActionResult> UpdateFractionStatistics() {
+            var fractions = await _db.Fractions.ToListAsync();
+            var tasks = new List<Task>(fractions.Count);
+            foreach(var fraction in fractions) {
+                tasks.Add(UpdateFractionStatistic(fraction.Name));
+            }
+            foreach(var task in tasks) {
+                await task;
+            }
+            await _db.SaveChangesAsync();
+            return Json(new {success = true});
+        }
+
+        private async Task UpdateFractionStatistic(string fractionName) {
+            Fraction fraction = await GetOrCreateFraction(fractionName);
+            var timeStamp = DateTime.Now;
+            var yesterday = timeStamp.AddDays(-1);
+            var wins = await _db.Fractions.Include(b => b.PlayedMatches).ThenInclude(m => m.Match)
+                .Where(f => f.Name == fractionName)
+                .SelectMany(b => b.PlayedMatches.Where(m => !m.Match.IsTraining && m.Match.Date > yesterday))
+                .CountAsync(m => m.Team == m.Match.Winner);
+            var count = await _db.Fractions.Include(b => b.PlayedMatches).ThenInclude(m => m.Match)
+                .Where(f => f.Name == fractionName)
+                .SelectMany(b => b.PlayedMatches.Where(m => !m.Match.IsTraining && m.Match.Date > yesterday))
+                .CountAsync();
+            var pickRate = await _db.Matches.Include(m => m.PlayerDatas)
+                .Where(m => !m.IsTraining && m.Date > yesterday)
+                .AverageAsync(m => m.PlayerDatas.Count(p => p.FractionName == fractionName));
+            Console.WriteLine(fractionName + " " + wins);
+            Console.WriteLine(fractionName + " " + count);
+            Console.WriteLine(fractionName + " " + pickRate);
+            FractionStatistic statistic = new FractionStatistic() {
+                TimeStamp = timeStamp,
+                Fraction = fraction,
+                FractionName = fractionName,
+                WonGames = wins,
+                LostGames = count - wins,
+                PickRate = (float)pickRate
+            };
+            _db.Update(fraction);
+            _db.FractionStatistic.Add(statistic);
+        }
+
 
 
 
@@ -486,7 +540,7 @@ namespace LegionTDServerReborn.Controllers
                 unit.SetTypeByName();
                 string fraction = unit.GetFractionByName();
                 unit.Fraction = await GetOrCreateFraction(fraction);
-                _db.UpdateRange(unit.Fraction);
+                _db.Update(unit.Fraction);
                 _db.Units.Add(unit);
                 await _db.SaveChangesAsync();
             }

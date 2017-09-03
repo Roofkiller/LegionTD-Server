@@ -15,5 +15,8 @@ namespace LegionTDServerReborn.Models
         public List<PlayerMatchData> PlayedMatches {get; set;}
         [InverseProperty("Fraction")]
         public List<Unit> Units {get; set;}
+        [InverseProperty("Fraction")]
+        public List<FractionStatistic> Statistics {get; set;}
+        public FractionStatistic CurrentStatistic => Statistics.OrderByDescending(s => s.TimeStamp).FirstOrDefault();
     }
 }

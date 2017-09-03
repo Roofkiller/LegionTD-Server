@@ -5,88 +5,103 @@
 @using Microsoft.AspNetCore.Html
 @model PlayerModel
 @{
-    ViewData["Title"] = @Model.SteamPlayer.PersonaName;
+    if (Model.PlayerId != -1) {
+        ViewData["Title"] = @Model.SteamPlayer.PersonaName;
+    } else {
+        ViewData["Title"] = "Player not found";
+    }
 }
 
-<div class='container'>
-    <div class='row match-header '>
-        <div class='col-lg-4 col-md-4 match-title'>
-            <span class='match-title'><img src='@Model.SteamPlayer.Avatar'> @ViewData["Title"]</span>
-        </div>
-        <div class='col-lg-8 col-md-8 col-sm-12 col-xs-12' style="">
-            <div class='container-fluid' id='match_info' style="">
-                @{
-                    var dictionary = new Dictionary<string, string>();
-                    dictionary["Last Game"] = @Model.Player.MatchDatas.Max(m => m.Match.Date).DateToText();
-                    dictionary["Rating"] = @Model.Player.Rating.ToString();
-                    dictionary["Record"] = $"<span class='radiant'>{@Model.Player.WonGames}</span> - <span class='dire'>{@Model.Player.LostGames}</span>";
-                    dictionary["Win Rate"] = (@Model.Player.WinRate * 100).ToString("00.00") + "%";
-                    <div class='row'>
-                        @foreach (var pair in dictionary) {
-                            <div class='col-md-3 col-sm-3 col-xs-6 match-info'>
-                                <p class='match-info-title'>@pair.Key</p>
-                                <p class='match-info-value'>@Html.Raw(pair.Value)</p>
-                            </div>
+@if (Model.PlayerId != -1) {
+    <div class='row'>
+        <div class='row match-header '>
+            <div class='col-lg-4 col-md-3 match-title'>
+                <span class='match-title'><img src='@Model.SteamPlayer.Avatar'> @ViewData["Title"]</span>
+            </div>
+            <div class='col-lg-8 col-md-9 col-sm-12 col-xs-12' style="">
+                <div id='match_info' style="">
+                    @{
+                        var dictionary = new Dictionary<string, string>();
+                        try {
+                            dictionary["Rank"] = Model.Player.Ranking.Position.ToString();
+                        } catch (Exception) {
+                            dictionary["Rank"] = "TBD";
                         }
-                    </div>
-                }
+                        dictionary["Rating"] = Model.Player.Rating.ToString();
+                        dictionary["Last Game"] = Model.Player.MatchDatas.Max(m => m.Match.Date).DateToText();
+                        dictionary["Record"] = $"<span class='radiant'>{Model.Player.WonGames}</span> - <span class='dire'>{@Model.Player.LostGames}</span>";
+                        dictionary["Win Rate"] = $"{Model.Player.WinRate * 100:00.00}%";
+                        <div class='row'>
+                            @foreach (var pair in dictionary) {
+                                <div class='col-lg-2 col-md-2 col-sm-2 col-xs-6 match-info'>
+                                    <p class='match-info-title text-center'>@pair.Key</p>
+                                    <p class='match-info-value text-center'>@Html.Raw(pair.Value)</p>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<h3>Matches</h3>
+    <h3>Matches</h3>
 
-<div class='table-responsive'>
-    <table class="table table-responsive table-hover table-striped">
-        <thead>
-            <td>
-                Builder
-            </td>
-            <td>
-                Date
-            </td>
-            <td>
-                Duration
-            </td>
-            <td>
-                Result
-            </td>
-            <td>
-                Last Wave
-            </td>
-            <td>
-                Rating
-            </td>
-        </thead>
-        <tbody id="match_table_body">
-            @{
-                Func<PlayerMatchData, IHtmlContent> printMatch = 
-                    @<tr class='clickable-row' data-href='/Match/@item.MatchId'>
-                        <td>@item.FractionName.ToBuilderIcon()</td>
-                        <td>@item.Match.GetFormattedDate()</td>
-                        <td>@item.Match.GetFormattedTime()</td>
-                        <td>
-                            @if (@item.Abandoned) {
-                                <span class='dire'>Abandoned</span>
-                            } else {
-                                @if (@item.Won) {
-                                    <span class='radiant'>Won Game</span>
+    <div class='table-responsive'>
+        <table class="table table-responsive table-hover table-striped">
+            <thead>
+                <tr>
+                    <th>
+                        Builder
+                    </th>
+                    <th>
+                        Date
+                    </th>
+                    <th>
+                        Duration
+                    </th>
+                    <th>
+                        Result
+                    </th>
+                    <th>
+                        Last Wave
+                    </th>
+                    <th>
+                        Rating
+                    </th>
+                </tr>
+            </thead>
+            <tbody id="match_table_body">
+                @{
+                    Func<PlayerMatchData, IHtmlContent> printMatch = 
+                        @<tr class='clickable-row' data-href='/Match/@item.MatchId'>
+                            <td>@item.FractionName.ToBuilderIcon()</td>
+                            <td>@item.Match.GetFormattedDate()</td>
+                            <td>@item.Match.GetFormattedTime()</td>
+                            <td>
+                                @if (@item.Abandoned) {
+                                    <span class='dire'>Abandoned</span>
                                 } else {
-                                    <span class='dire'>Lost Game</span>
+                                    @if (@item.Won) {
+                                        <span class='radiant'>Won Game</span>
+                                    } else {
+                                        <span class='dire'>Lost Game</span>
+                                    }
                                 }
-                            }
-                        </td>
-                        <td>@item.Match.LastWave</td>
-                        <td>@Html.FormatRatingChange(item.RatingChange)</td>
-                    </tr>;
-                foreach(var match in @Model.Player.MatchDatas.OrderByDescending(m => m.MatchId).Take(50)) {
-                    @printMatch(match)
+                            </td>
+                            <td>@item.Match.LastWave</td>
+                            <td>@Html.FormatRatingChange(item.RatingChange)</td>
+                        </tr>;
+                    foreach(var match in @Model.Player.MatchDatas.OrderByDescending(m => m.MatchId).Take(50)) {
+                        @printMatch(match)
+                    }
                 }
-            }
-        </tbody>
-    </table>
-</div>
+            </tbody>
+        </table>
+    </div>
+} else {
+    <h2>Player not found.</h2>
+}
 
 
 @section scripts {
