@@ -12,9 +12,10 @@ using System;
 namespace LegionTDServerReborn.Migrations
 {
     [DbContext(typeof(LegionTdContext))]
-    partial class LegionTdContextModelSnapshot : ModelSnapshot
+    [Migration("20170904174057_AddedAbilities")]
+    partial class AddedAbilities
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -254,11 +255,11 @@ namespace LegionTDServerReborn.Migrations
                 {
                     b.Property<string>("UnitName");
 
-                    b.Property<int>("Slot");
-
                     b.Property<string>("AbilityName");
 
-                    b.HasKey("UnitName", "Slot");
+                    b.Property<int>("Slot");
+
+                    b.HasKey("UnitName", "AbilityName");
 
                     b.HasIndex("AbilityName");
 
@@ -348,7 +349,8 @@ namespace LegionTDServerReborn.Migrations
                 {
                     b.HasOne("LegionTDServerReborn.Models.Ability", "Ability")
                         .WithMany("Casters")
-                        .HasForeignKey("AbilityName");
+                        .HasForeignKey("AbilityName")
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.HasOne("LegionTDServerReborn.Models.Unit", "Unit")
                         .WithMany("Abilities")

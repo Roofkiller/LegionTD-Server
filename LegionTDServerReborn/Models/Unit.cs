@@ -5,6 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using LegionTDServerReborn.Extension;
 using Newtonsoft.Json.Linq;
 
 namespace LegionTDServerReborn.Models
@@ -52,62 +53,35 @@ namespace LegionTDServerReborn.Models
 
         public string LegionAttackType {get; set;}
         public string LegionDefendType {get; set;}
+        
+        [InverseProperty("Unit")]
+        public List<UnitAbility> Abilities {get; set;}
 
-        public string Ability1 {get; set;}
-        public string Ability2 {get; set;}
-        public string Ability3 {get; set;}
-        public string Ability4 {get; set;}
+        [InverseProperty("Unit")]
+        public SpawnAbility SpawnAbility {get; set;}
 
         public void UpdateValues(JToken values) {
-            Experience = TryGetValueInt(values, "LegionExperience");
+            Experience = values.GetValueOrDefaultInt("LegionExperience");
             
-            AttackDamageMin = TryGetValueFloat(values, "AttackDamageMin");
-            AttackDamageMax = TryGetValueFloat(values, "AttackDamageMax");
-            AttackRate = TryGetValueFloat(values, "AttackRate");
-            AttackRange = TryGetValueFloat(values, "AttackRange");
+            AttackDamageMin = values.GetValueOrDefaultFloat("AttackDamageMin");
+            AttackDamageMax = values.GetValueOrDefaultFloat("AttackDamageMax");
+            AttackRate = values.GetValueOrDefaultFloat("AttackRate");
+            AttackRange = values.GetValueOrDefaultFloat("AttackRange");
 
-            ArmorPhysical = TryGetValueFloat(values, "ArmorPhysical");
-            MagicResistance = TryGetValueFloat(values, "MagicResistance");
-            StatusHealth = TryGetValueFloat(values, "StatusHealth");
-            StatusHealthRegen = TryGetValueFloat(values, "StatusHealthRegen");
-            StatusMana = TryGetValueFloat(values, "StatusMana");
-            StatusManaRegen = TryGetValueFloat(values, "StatusManaRegen");
+            ArmorPhysical = values.GetValueOrDefaultFloat("ArmorPhysical");
+            MagicResistance = values.GetValueOrDefaultFloat("MagicResistance");
+            StatusHealth = values.GetValueOrDefaultFloat("StatusHealth");
+            StatusHealthRegen = values.GetValueOrDefaultFloat("StatusHealthRegen");
+            StatusMana = values.GetValueOrDefaultFloat("StatusMana");
+            StatusManaRegen = values.GetValueOrDefaultFloat("StatusManaRegen");
 
-            BountyGoldMin = TryGetValueFloat(values, "BountyGoldMin");
-            BountyGoldMax = TryGetValueFloat(values, "BountyGoldMax");
+            BountyGoldMin = values.GetValueOrDefaultFloat("BountyGoldMin");
+            BountyGoldMax = values.GetValueOrDefaultFloat("BountyGoldMax");
 
-            LegionAttackType = TryGetValue(values, "LegionAttackType");
-            LegionDefendType = TryGetValue(values, "LegionDefendType");   
-
-            Ability1 = TryGetValue(values, "Ability1");
-            Ability2 = TryGetValue(values, "Ability2");    
-            Ability3 = TryGetValue(values, "Ability3");
-            Ability4 = TryGetValue(values, "Ability4");            
+            LegionAttackType = values.GetValueOrDefault("LegionAttackType");
+            LegionDefendType = values.GetValueOrDefault("LegionDefendType");       
         }
 
-        private int TryGetValueInt(JToken source, string name) {
-            try {
-                return source[name].Value<int>();
-            } catch(Exception) {
-                return 0;
-            }
-        }
-
-        private float TryGetValueFloat(JToken source, string name) {
-            try {
-                return source[name].Value<float>();
-            } catch(Exception) {
-                return 0;
-            }
-        }
-
-        private string TryGetValue(JToken source, string name) {
-            try {
-                return source[name].Value<string>();
-            } catch(Exception) {
-                return "";
-            }
-        }
 
         public void SetTypeByName()
         {

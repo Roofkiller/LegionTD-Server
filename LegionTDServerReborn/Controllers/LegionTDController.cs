@@ -12,6 +12,7 @@ using System.Data;
 using System.Data.Common;
 using System.Diagnostics;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using LegionTDServerReborn.Extension;
@@ -311,7 +312,7 @@ namespace LegionTDServerReborn.Controllers
                 PickRate = (float)pickRate
             };
             _db.Update(fraction);
-            _db.FractionStatistic.Add(statistic);
+            _db.FractionStatistics.Add(statistic);
         }
 
 
@@ -322,6 +323,7 @@ namespace LegionTDServerReborn.Controllers
         {
             public const string SavePlayerData = "save_player";
             public const string SaveMatchData = "save_match";
+            public const string UpdateAbilityData = "update_abilities";
             public const string UpdateUnitData = "update_units";
         }
 
@@ -335,6 +337,8 @@ namespace LegionTDServerReborn.Controllers
                     return await SaveMatchData(winner, playerData, duration, lastWave, duelData);
                 case PostMethods.UpdateUnitData:
                     return await UpdateUnitData(data);
+                case PostMethods.UpdateAbilityData:
+                    return await UpdateAbilityData(data);
                 case PostMethods.SavePlayerData:
                 default:
                     return Json(new InvalidRequestFailure());
@@ -343,9 +347,14 @@ namespace LegionTDServerReborn.Controllers
 
         private async Task<ActionResult> UpdateUnitData(string data)
         {
-            Debug.WriteLine("The following is the unit data: ");
-            Debug.WriteLine(data);
-            var unitData = JObject.Parse(data);
+            if (string.IsNullOrEmpty(data))
+                return Json(new MissingArgumentFailure());
+            JObject unitData;
+            try {
+                unitData = JObject.Parse(data);
+            } catch(Exception) {
+                return Json(new InvalidRequestFailure());
+            }
             var units = new List<Unit>();
             foreach (var pair in unitData)
             {
@@ -359,10 +368,35 @@ namespace LegionTDServerReborn.Controllers
                 Unit unit = await GetOrCreateUnit(unitName);
                 unit.Fraction = await GetOrCreateFraction(fraction);
                 unit.UpdateValues(pair.Value);
+                await _db.Database.ExecuteSqlCommandAsync($"DELETE FROM UnitAbilities WHERE UnitName = {unitName};");
+                for (int i = 1; i <= 24; i++) {
+                    string abilityName = pair.Value.GetValueOrDefault($"Ability{i}");
+                    if (!string.IsNullOrEmpty(abilityName)) {
+                        await GetOrCreateUnitAbility(unitName, abilityName, i);
+                    }
+                }
                 units.Add(unit);
             }
             _db.UpdateRange(units.Select(u => u.Fraction).ToArray());
             _db.UpdateRange(units.ToArray());
+            await _db.SaveChangesAsync();
+            return Json(new {Success = true});
+        }
+
+        private async Task<ActionResult> UpdateAbilityData(string data) {
+            if (string.IsNullOrEmpty(data))
+                return Json(new MissingArgumentFailure());
+            JObject abilityData;
+            try {
+                abilityData = JObject.Parse(data);
+            } catch(Exception) {
+                return Json(new InvalidRequestFailure());
+            }
+            var abilities = new List<Ability>();
+            foreach(var pair in abilityData) {
+                string abilityName = pair.Key;
+                Ability ability = await GetOrCreateAbility(abilityName);
+            }
             await _db.SaveChangesAsync();
             return Json(new {Success = true});
         }
@@ -524,6 +558,43 @@ namespace LegionTDServerReborn.Controllers
 
             await _db.SaveChangesAsync();
 
+            return result;
+        }
+
+        private async Task<Ability> GetOrCreateAbility(string abilityName) {
+            Ability ability = await _db.Abilities.FindAsync(abilityName);
+            if (ability == null) {
+                if (Regex.IsMatch(abilityName, @".+builder_(spawn|upgrade)_.+")) {
+                    string unitName = Regex.Replace(abilityName, @"_(spawn|upgrade)", "");
+                    ability = new SpawnAbility{
+                        Unit = await GetOrCreateUnit(unitName),
+                        UnitName = unitName
+                    };
+                    _db.Update(((SpawnAbility)ability).Unit);
+                    _db.SpawnAbilities.Add((SpawnAbility)ability);
+                } else {
+                    ability = new Ability();
+                _db.Abilities.Add(ability);
+                }
+                ability.Name = abilityName;
+                await _db.SaveChangesAsync();
+            }
+            return ability;
+        }
+
+        private async Task<UnitAbility> GetOrCreateUnitAbility(string unitName, string abilityName, int slot) {
+            var result = await _db.UnitAbilities.FindAsync(unitName, slot);
+            if (result == null) {
+                result = new UnitAbility {
+                    UnitName = unitName,
+                    Unit = await GetOrCreateUnit(unitName),
+                    AbilityName = abilityName,
+                    Ability = await GetOrCreateAbility(abilityName),
+                    Slot = slot
+                };
+                _db.UnitAbilities.Add(result);
+                await _db.SaveChangesAsync();
+            }
             return result;
         }
 

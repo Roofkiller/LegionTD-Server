@@ -12,9 +12,10 @@ using System;
 namespace LegionTDServerReborn.Migrations
 {
     [DbContext(typeof(LegionTdContext))]
-    partial class LegionTdContextModelSnapshot : ModelSnapshot
+    [Migration("20170904183946_RemovedUnitAbilities")]
+    partial class RemovedUnitAbilities
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -250,29 +251,13 @@ namespace LegionTDServerReborn.Migrations
                     b.ToTable("Units");
                 });
 
-            modelBuilder.Entity("LegionTDServerReborn.Models.UnitAbility", b =>
-                {
-                    b.Property<string>("UnitName");
-
-                    b.Property<int>("Slot");
-
-                    b.Property<string>("AbilityName");
-
-                    b.HasKey("UnitName", "Slot");
-
-                    b.HasIndex("AbilityName");
-
-                    b.ToTable("UnitAbilities");
-                });
-
             modelBuilder.Entity("LegionTDServerReborn.Models.SpawnAbility", b =>
                 {
                     b.HasBaseType("LegionTDServerReborn.Models.Ability");
 
                     b.Property<string>("UnitName");
 
-                    b.HasIndex("UnitName")
-                        .IsUnique();
+                    b.HasIndex("UnitName");
 
                     b.ToTable("SpawnAbility");
 
@@ -344,23 +329,11 @@ namespace LegionTDServerReborn.Migrations
                         .HasForeignKey("ParentName");
                 });
 
-            modelBuilder.Entity("LegionTDServerReborn.Models.UnitAbility", b =>
-                {
-                    b.HasOne("LegionTDServerReborn.Models.Ability", "Ability")
-                        .WithMany("Casters")
-                        .HasForeignKey("AbilityName");
-
-                    b.HasOne("LegionTDServerReborn.Models.Unit", "Unit")
-                        .WithMany("Abilities")
-                        .HasForeignKey("UnitName")
-                        .OnDelete(DeleteBehavior.Cascade);
-                });
-
             modelBuilder.Entity("LegionTDServerReborn.Models.SpawnAbility", b =>
                 {
                     b.HasOne("LegionTDServerReborn.Models.Unit", "Unit")
-                        .WithOne("SpawnAbility")
-                        .HasForeignKey("LegionTDServerReborn.Models.SpawnAbility", "UnitName");
+                        .WithMany()
+                        .HasForeignKey("UnitName");
                 });
 #pragma warning restore 612, 618
         }
