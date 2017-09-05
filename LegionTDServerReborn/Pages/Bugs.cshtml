@@ -40,7 +40,7 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach(var bug in Model.Bugs) {
+                @foreach(var bug in Model.Bugs.OrderBy(b => b.Done).ThenByDescending(b => b.CreationDate)) {
                     <tr>
                         <td>
                             @bug.Title
