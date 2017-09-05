@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using LegionTDServerReborn.Extension;
+using LegionTDServerReborn.Extensions;
 using Newtonsoft.Json.Linq;
 
 namespace LegionTDServerReborn.Models

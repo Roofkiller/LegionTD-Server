@@ -15,7 +15,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using LegionTDServerReborn.Extension;
+using LegionTDServerReborn.Extensions;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Scaffolding.Internal;

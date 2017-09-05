@@ -22,6 +22,7 @@ namespace LegionTDServerReborn.Models
         public DbSet<Ability> Abilities {get; set;}
         public DbSet<SpawnAbility> SpawnAbilities {get; set;}
         public DbSet<UnitAbility> UnitAbilities {get; set;}
+        public DbSet<BugReport> BugReports {get; set;}
 
         public LegionTdContext(DbContextOptions<LegionTdContext> options)
             :base (options) {

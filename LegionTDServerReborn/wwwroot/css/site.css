@@ -105,3 +105,10 @@ a.matches-site{
  .gold {
      color : goldenrod;
  }
+
+ .notification-box {
+     background-color: hsl(90, 60%, 75%);
+     padding: 8px;
+     color: #111111;
+     border-radius: 8px;
+ }

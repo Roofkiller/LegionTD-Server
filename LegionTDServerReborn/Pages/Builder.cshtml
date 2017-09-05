@@ -1,6 +1,6 @@
 @page "{builder}"
 @using LegionTDServerReborn.Models
-@using LegionTDServerReborn.Extension
+@using LegionTDServerReborn.Extensions
 @using LegionTDServerReborn.Helpers
 @using Microsoft.AspNetCore.Html
 @model BuilderModel
@@ -78,36 +78,52 @@
             </tr>
         </thead>
         <tbody>
-            @foreach(var unit in Model.Builder.Units) {
-                <tr class='text-right'>
+            @{
+                Func<Unit, IHtmlContent> printUnit = 
+                    @<tr class='text-right'>
                     <td class='text-left'>
-                        @unit.Name.ToUnitName()
+                        @{
+                            var indent = item.GetLevel();
+                        }
+                        <span style='padding-left: @(indent + "em")'>@item.GetDisplayName()</span>
                     </td>
                     <td>
-                        @unit.GoldCost()
+                        @item.GetGoldCost()
                     </td>
                     <td>
-                        @unit.TotalGoldCost()
+                        @item.GetTotalGoldCost()
                     </td>
                     <td>
-                        @unit.StatusHealth
+                        @item.StatusHealth
                     </td>
                     <td>
-                        @unit.ArmorPhysical
+                        @item.ArmorPhysical
                     </td>
                     <td>
-                        @((int)((unit.AttackDamageMin + unit.AttackDamageMax)/2))
+                        @((int)((item.AttackDamageMin + item.AttackDamageMax)/2))
                     </td>
                     <td>
-                        @unit.AttackRate.ToString("0.00")
+                        @item.AttackRate.ToString("0.00")
                     </td>
                     <td>
-                        @((int)((unit.AttackDamageMin + unit.AttackDamageMax)/2 * unit.AttackRate))
+                        @((int)((item.AttackDamageMin + item.AttackDamageMax)/2 * item.AttackRate))
                     </td>
                     <td>
-                        @unit.AttackRange
+                        @item.AttackRange
                     </td>
-                </tr>
+                </tr>;
+                
+                foreach(var unit in Model.Builder.Units.Where(u => u.GetParent() == null).OrderBy(u => u.GetGoldCost())) {
+                    Stack<Unit> toPrint = new Stack<Unit>();
+                    toPrint.Push(unit);
+                    while (toPrint.Count > 0) {
+                        var current = toPrint.Pop();
+                        @printUnit(current)
+                        foreach(var toAdd in current.GetChildren()) {
+                            toPrint.Push(toAdd);
+                        }
+                    }
+                }
             }
         </tbody>
     </table>

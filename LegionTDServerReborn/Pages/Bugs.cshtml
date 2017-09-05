@@ -1,0 +1,76 @@
+﻿@page
+@using LegionTDServerReborn.Models
+@using LegionTDServerReborn.Extensions
+@using Microsoft.AspNetCore.Html
+@model BugsModel
+@{
+    ViewData["Title"] = "Bug Report";
+}
+<h2>@ViewData["Title"]</h2>
+
+<div class="table-responsive">
+    <form method="POST">
+        <table class="table table-striped table-hover">
+            <col width='20%'>
+            <col width='10%'>
+            <col width='20%'>
+            <col width='30%'>
+            <col width='5%'>
+            <col width='15%'>
+            <thead>
+                <tr>
+                    <th>
+                        Title
+                    </th>
+                    <th>
+                        Date
+                    </th>
+                    <th>
+                        Contact
+                    </th>
+                    <th>
+                        Description
+                    </th>
+                    <th>
+                        Fixed
+                    </th>
+                    <th>
+                        Actions
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach(var bug in Model.Bugs) {
+                    <tr>
+                        <td>
+                            @bug.Title
+                        </td>
+                        <td>
+                            @bug.CreationDate.ToRelativeText()
+                        </td>
+                        <td>
+                            @bug.Contact
+                        </td>
+                        <td>
+                            @bug.Description
+                        </td>
+                        <td>
+                            @if (bug.Done) {
+                                <i class="fa fa-check" aria-hidden="true"></i>
+                            } else {
+                            }
+                        </td>
+                        <td>
+                            @if (bug.Done) {
+                                <button type="submit" asp-page-handler="unfix" asp-route-id="@bug.Id">Unfix</button>
+                            } else {
+                                <button type="submit" asp-page-handler="fix" asp-route-id="@bug.Id">Fix</button>
+                            }
+                            <button type="submit" asp-page-handler="delete" asp-route-id="@bug.Id">Delete</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </form>
+</div>

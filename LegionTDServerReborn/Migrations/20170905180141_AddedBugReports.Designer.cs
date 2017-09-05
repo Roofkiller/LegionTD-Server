@@ -12,9 +12,10 @@ using System;
 namespace LegionTDServerReborn.Migrations
 {
     [DbContext(typeof(LegionTdContext))]
-    partial class LegionTdContextModelSnapshot : ModelSnapshot
+    [Migration("20170905180141_AddedBugReports")]
+    partial class AddedBugReports
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -51,17 +52,13 @@ namespace LegionTDServerReborn.Migrations
 
                     b.Property<string>("Contact");
 
-                    b.Property<DateTimeOffset>("CreationDate");
+                    b.Property<DateTime>("CreationDate");
 
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(512);
+                    b.Property<string>("Descriptions");
 
                     b.Property<bool>("Done");
 
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(128);
+                    b.Property<string>("Title");
 
                     b.HasKey("Id");
 

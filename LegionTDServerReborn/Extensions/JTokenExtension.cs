@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace LegionTDServerReborn.Extension {
+namespace LegionTDServerReborn.Extensions {
     public static class JTokenExtension {
         public static int  GetValueOrDefaultInt(this JToken source, string name) {
             try {

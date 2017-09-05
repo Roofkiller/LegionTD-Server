@@ -1,6 +1,6 @@
 @page "{playerId:long}"
 @using LegionTDServerReborn.Models
-@using LegionTDServerReborn.Extension
+@using LegionTDServerReborn.Extensions
 @using LegionTDServerReborn.Helpers
 @using Microsoft.AspNetCore.Html
 @model PlayerModel
@@ -28,7 +28,7 @@
                             dictionary["Rank"] = "TBD";
                         }
                         dictionary["Rating"] = Model.Player.Rating.ToString();
-                        dictionary["Last Game"] = Model.Player.MatchDatas.Max(m => m.Match.Date).DateToText();
+                        dictionary["Last Game"] = Model.Player.MatchDatas.Max(m => m.Match.Date).ToRelativeText();
                         dictionary["Record"] = $"<span class='radiant'>{Model.Player.WonGames}</span> - <span class='dire'>{@Model.Player.LostGames}</span>";
                         dictionary["Win Rate"] = $"{Model.Player.WinRate * 100:00.00}%";
                         <div class='row'>

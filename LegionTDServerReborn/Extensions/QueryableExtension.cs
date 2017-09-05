@@ -4,7 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 
-namespace LegionTDServerReborn.Extension
+namespace LegionTDServerReborn.Extensions
 {
     public static class QueryableExtension
     {
