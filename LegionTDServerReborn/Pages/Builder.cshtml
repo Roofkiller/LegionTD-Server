@@ -37,17 +37,25 @@
 <h3>Units</h3>
 <div class='table-responsive'>
     <table class='table table-striped'>
-        <col width='22%'>
-        <col width='13%'>
-        <col width='13%'>
-        <col width='13%'>
-        <col width='13%'>
-        <col width='13%'>
-        <col width='13%'>
+        <col width='20%'>
+        <col width='10%'>
+        <col width='10%'>
+        <col width='10%'>
+        <col width='10%'>
+        <col width='10%'>
+        <col width='10%'>
+        <col width='10%'>
+        <col width='10%'>
         <thead>
             <tr>
                 <th class='text-left'>
                     Unit
+                </th>
+                <th class='text-right'>
+                    Gold Cost
+                </th>
+                <th class='text-right'>
+                    Total Cost
                 </th>
                 <th class='text-right'>
                     Health
@@ -56,7 +64,7 @@
                     Armor
                 </th>
                 <th class='text-right'>
-                    Attack Damage
+                    Damage
                 </th>
                 <th class='text-right'>
                     Attack Rate
@@ -65,7 +73,7 @@
                     DPS
                 </th>
                 <th class='text-right'>
-                    Attack Range
+                    Range
                 </th>
             </tr>
         </thead>
@@ -74,6 +82,12 @@
                 <tr class='text-right'>
                     <td class='text-left'>
                         @unit.Name.ToUnitName()
+                    </td>
+                    <td>
+                        @unit.GoldCost()
+                    </td>
+                    <td>
+                        @unit.TotalGoldCost()
                     </td>
                     <td>
                         @unit.StatusHealth

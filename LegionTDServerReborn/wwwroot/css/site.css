@@ -101,3 +101,7 @@ a.matches-site{
     vertical-align: middle;
     float: none;
  }
+
+ .gold {
+     color : goldenrod;
+ }

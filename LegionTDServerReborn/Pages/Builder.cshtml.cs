@@ -34,7 +34,13 @@ namespace LegionTDServerReborn.Pages
         public void OnGet(string builder)
         {
             BuilderName = builder ?? "";
-            Builder = _db.Fractions.Include(b => b.Units).Include(b => b.Statistics).Single(f => f.Name == BuilderName);
+            Builder = _db.Fractions.Include(b => b.Units)
+                .ThenInclude(u => u.Abilities)
+                .ThenInclude(a => a.Ability)
+                .Include(b => b.Units)
+                .ThenInclude(u => u.SpawnAbility)
+                .Include(b => b.Statistics)
+                .Single(f => f.Name == BuilderName);
             Statistic = Builder.CurrentStatistic;
         }
     }

@@ -442,6 +442,7 @@ namespace LegionTDServerReborn.Controllers
             foreach(var pair in abilityData) {
                 string abilityName = pair.Key;
                 Ability ability = await GetOrCreateAbility(abilityName);
+                ability.UpdateValues(pair.Value);
             }
             await _db.SaveChangesAsync();
             return Json(new {Success = true});
@@ -588,9 +589,11 @@ namespace LegionTDServerReborn.Controllers
             }
             List<PlayerUnitRelation> result = relations.Values.ToList();
 
-            result.ForEach(r => _db.Entry(r.Unit).State = EntityState.Modified);
-            _db.Entry(playerMatchData).State = EntityState.Modified;
+            _db.UpdateRange(result.Select(r => r.Unit));
+            _db.Update(playerMatchData);
             _db.PlayerUnitRelations.AddRange(result);
+            
+            await _db.SaveChangesAsync();
             
             //Calculating Match statistics
             var p = await _db.PlayerMatchDatas
@@ -611,7 +614,7 @@ namespace LegionTDServerReborn.Controllers
             Ability ability = await _db.Abilities.FindAsync(abilityName);
             if (ability == null) {
                 if (Regex.IsMatch(abilityName, @".+builder_(spawn|upgrade)_.+")) {
-                    string unitName = Regex.Replace(abilityName, @"_(spawn|upgrade)", "");
+                    string unitName = "tower_" + Regex.Replace(abilityName, @"_(spawn|upgrade)", "");
                     ability = new SpawnAbility{
                         Unit = await GetOrCreateUnit(unitName),
                         UnitName = unitName

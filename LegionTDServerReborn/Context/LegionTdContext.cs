@@ -48,6 +48,7 @@ namespace LegionTDServerReborn.Models
             modelBuilder.Entity<Ability>().HasMany(a => a.Casters).WithOne(c => c.Ability).HasForeignKey(c => c.AbilityName);
 
             modelBuilder.Entity<Unit>().HasOne(u => u.Parent).WithMany(p => p.Children).HasForeignKey(u => u.ParentName);
+            modelBuilder.Entity<Unit>().HasOne(u => u.SpawnAbility).WithOne(a => a.Unit).HasForeignKey<SpawnAbility>(a => a.UnitName);
 
             modelBuilder.Entity<Match>().Property(m => m.MatchId).ValueGeneratedOnAdd();
             

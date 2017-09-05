@@ -79,5 +79,29 @@ namespace LegionTDServerReborn.Extension
             }
             return result.ToString();
         }
+
+        public static Unit Parent (this Unit unit) {
+            if (unit.SpawnAbility == null) {
+                return null;
+            }
+            if (unit.SpawnAbility.Casters == null || unit.SpawnAbility.Casters.Count == 0) {
+                return null;
+            }
+            return unit.SpawnAbility.Casters[0].Unit;
+        }
+
+        public static int GoldCost(this Unit unit) {
+            return unit.SpawnAbility != null ? unit.SpawnAbility.GoldCost : 0;
+        }
+
+        public static int TotalGoldCost(this Unit unit) {
+            var totalCost = 0;
+            var currentUnit = unit;
+            while (currentUnit != null) {
+                totalCost += currentUnit.GoldCost();
+                currentUnit = currentUnit.Parent();
+            }
+            return totalCost;
+        }
     }
 }

@@ -63,9 +63,9 @@ namespace LegionTDServerReborn.Models
                 .Select(p => p.Player);
             var enemyAvg = enemies.Average(e => e.GetRatingBefore(Match.Date));
             var teamAvg = team.Average(t => t.GetRatingBefore(Match.Date));
-            var ratio = enemyAvg / teamAvg;
+            var ratio = Math.Pow(enemyAvg / teamAvg, 2);
 
-            var change = (int)(Math.Atan(Won ? ratio : -1/ratio)/Math.PI*100);
+            var change = (int)Math.Round(Math.Atan(Won ? ratio : -1/ratio)/Math.PI*100);
             //Preventing you from hitting negative ratings
             if (oldRating + change < 0)
                 change = -oldRating;
