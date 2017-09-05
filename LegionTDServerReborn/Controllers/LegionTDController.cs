@@ -21,6 +21,9 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Scaffolding.Internal;
 using MySql.Data.MySqlClient;
 using Match = LegionTDServerReborn.Models.Match;
+using LegionTDServerReborn.Utils;
+using System.Net;
+using System.IO;
 
 namespace LegionTDServerReborn.Controllers
 {
@@ -331,6 +334,9 @@ namespace LegionTDServerReborn.Controllers
         public async Task<ActionResult> Post(string method, int? winner, string playerData, string data, float duration,
             int lastWave, string duelData, long? steamId)
         {
+            if (!await CheckIp()) {
+                return Json(new NoPermissionFailure());
+            }
             switch (method)
             {
                 case PostMethods.SaveMatchData:
@@ -343,6 +349,45 @@ namespace LegionTDServerReborn.Controllers
                 default:
                     return Json(new InvalidRequestFailure());
             }
+        }
+
+        private async Task<bool> CheckIp() {
+            var ipAddress = Request.HttpContext.Connection.RemoteIpAddress;
+            var ranges = await GetDotaIpRanges();
+            foreach(var range in ranges) {
+                if (range.IsInRange(ipAddress)) {
+                    return true;
+                }
+            }
+            Console.WriteLine($"Connection to {ipAddress.ToString()} refused.");
+            return false;
+        }
+
+        private async Task<List<IpAddressRange>> GetDotaIpRanges() {
+            List<IpAddressRange> result = null;
+            if (!_cache.TryGetValue("dota_ip_ranges", out result)) {
+                result = new List<IpAddressRange>();
+                WebRequest request = WebRequest.CreateHttp("http://media.steampowered.com/apps/sdr/network_config.json");
+                request.Method = "GET";
+                var response = await request.GetResponseAsync();
+                var responseStream = response.GetResponseStream();
+                StreamReader reader = new StreamReader(responseStream, Encoding.UTF8);
+                string content = reader.ReadToEnd();
+                var json = JObject.Parse(content);
+                var datacenters = json["data_centers"] as JObject;
+                foreach(var datacenter in datacenters) {
+                    var addressRanges = datacenter.Value["address_ranges"] as JArray;
+                    if (addressRanges != null) {
+                        foreach (var addressRange in addressRanges) {
+                            result.Add(IpAddressRange.Parse((string)addressRange));
+                        }
+                    }
+                }
+                result.Add(new IpAddressRange("127.0.0.1", "127.0.0.1"));
+                result.Add(new IpAddressRange("::1", "::1"));
+                _cache.Set("dota_ip_ranges", result, TimeSpan.FromDays(1));
+            }
+            return result;
         }
 
         private async Task<ActionResult> UpdateUnitData(string data)

@@ -11,15 +11,6 @@ namespace LegionTDServerReborn.Responses
         public string Failure { get; set; } = "Unkown Error";
     }
 
-    public class NotFoundFailure : FailureMessage
-    {
-        public NotFoundFailure()
-        {
-            Failure = "Not found.";
-            FailureCode = 4;
-        }
-    }
-
 
     public class InvalidRequestFailure : FailureMessage
     {
@@ -39,12 +30,28 @@ namespace LegionTDServerReborn.Responses
         }
     }
 
+    public class NotFoundFailure : FailureMessage
+    {
+        public NotFoundFailure()
+        {
+            Failure = "Not found.";
+            FailureCode = 4;
+        }
+    }
+
     public class MissingArgumentFailure : FailureMessage
     {
         public MissingArgumentFailure()
         {
             Failure = "Missing Arguments.";
             FailureCode = 5;
+        }
+    }
+
+    public class NoPermissionFailure : FailureMessage {
+        public NoPermissionFailure() {
+            Failure = "You have no permission to do that.";
+            FailureCode = 6;
         }
     }
 }
