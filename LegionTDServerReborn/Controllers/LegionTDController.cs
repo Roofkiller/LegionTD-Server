@@ -356,6 +356,7 @@ namespace LegionTDServerReborn.Controllers
             var ranges = await GetDotaIpRanges();
             foreach(var range in ranges) {
                 if (range.IsInRange(ipAddress)) {
+                    Console.WriteLine($"Client {ipAddress} is in Range {range.Lower} - {range.Upper}.");
                     return true;
                 }
             }

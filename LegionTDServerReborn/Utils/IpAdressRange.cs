@@ -7,6 +7,8 @@ namespace LegionTDServerReborn.Utils {
         readonly AddressFamily addressFamily;
         readonly byte[] lowerBytes;
         readonly byte[] upperBytes;
+        public IPAddress Lower {get; private set;}
+        public IPAddress Upper {get; private set;}
 
         public IpAddressRange(string lowerInclusive, string upperInclusive)
             :this(IPAddress.Parse(lowerInclusive), IPAddress.Parse(upperInclusive)){
@@ -15,6 +17,8 @@ namespace LegionTDServerReborn.Utils {
 
         public IpAddressRange(IPAddress lowerInclusive, IPAddress upperInclusive)
         {
+            Lower = lowerInclusive;
+            Upper = upperInclusive;
             this.addressFamily = lowerInclusive.AddressFamily;
             this.lowerBytes = lowerInclusive.GetAddressBytes();
             this.upperBytes = upperInclusive.GetAddressBytes();

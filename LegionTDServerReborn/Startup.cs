@@ -12,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.HttpOverrides;
 
 namespace LegionTDServerReborn
 {
@@ -54,11 +55,15 @@ namespace LegionTDServerReborn
         {
             loggerFactory.AddConsole(Configuration.GetSection("Logging"));
             loggerFactory.AddDebug();
+
+            ForwardedHeadersOptions options = new ForwardedHeadersOptions();
+            options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+            app.UseForwardedHeaders(options);
+
             app.UseMvc(routes =>
             {
                 routes.MapRoute("default", "{controller=legiontd}/");
             });
-
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
