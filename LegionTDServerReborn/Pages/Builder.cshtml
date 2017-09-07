@@ -106,7 +106,7 @@
                         @item.AttackRate.ToString("0.00")
                     </td>
                     <td>
-                        @((int)((item.AttackDamageMin + item.AttackDamageMax)/2 * item.AttackRate))
+                        @((int)((item.AttackDamageMin + item.AttackDamageMax)/2 / item.AttackRate))
                     </td>
                     <td>
                         @item.AttackRange
