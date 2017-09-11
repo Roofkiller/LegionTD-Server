@@ -32,15 +32,14 @@ namespace LegionTDServerReborn.Pages
 
         public int PageCount => (int)Math.Ceiling(MatchCount / (float)MatchesPerSite);
 
-        public void OnGet(int? site)
+        public async Task OnGetAsync(int? site)
         {
             Site = site ?? 1;
-            Matches = _db.Matches.Include(m => m.PlayerDatas)
-                                .Where(m => !m.IsTraining)
+            Matches = await _db.Matches.Include(m => m.PlayerDatas)
                                 .OrderByDescending(m => m.MatchId)
                                 .Skip((Site - 1) * MatchesPerSite)
-                                .Take(MatchesPerSite).ToList();
-            MatchCount = _db.Matches.Where(m => !m.IsTraining).Count();
+                                .Take(MatchesPerSite).ToListAsync();
+            MatchCount = await _db.Matches.Where(m => !m.IsTraining).CountAsync();
         }
     }
 }

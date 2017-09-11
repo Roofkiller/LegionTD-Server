@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using LegionTDServerReborn.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace LegionTDServerReborn.Pages
 {
@@ -20,9 +21,9 @@ namespace LegionTDServerReborn.Pages
             _db = db;
         }
 
-        public void OnGet()
+        public async Task OnGetAsync()
         {
-            Bugs = _db.BugReports.ToList();
+            Bugs = await _db.BugReports.ToListAsync();
         }
 
         public async Task<ActionResult> OnPostFixAsync(int id) {

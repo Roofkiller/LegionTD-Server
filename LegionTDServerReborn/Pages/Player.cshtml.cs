@@ -6,6 +6,7 @@ using System.Text;
 using System.IO;
 using System.Threading.Tasks;
 using LegionTDServerReborn.Models;
+using LegionTDServerReborn.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Configuration;
@@ -16,39 +17,41 @@ using Newtonsoft.Json.Linq;
 
 namespace LegionTDServerReborn.Pages
 {
-    public class PlayerModel : SteamApiModel
+    public class PlayerModel : PageModel
     {
         public long PlayerId {get; set;}
 
         public Player Player {get; set;}
 
-        public SteamPlayer SteamPlayer {get; set;}
+        public SteamInformation SteamPlayer {get; set;}
 
         private LegionTdContext _db;
 
-        public PlayerModel(IConfiguration configuration, LegionTdContext db)
-            :base(configuration) {
-                _db = db;
+        private SteamApi _steamApi;
+
+        public PlayerModel(SteamApi steamApi, LegionTdContext db) {
+            _db = db;
+            _steamApi = steamApi;
         }
 
-        public void OnGet(long? playerId)
+        public async Task OnGetAsync(long? playerId)
         {
             PlayerId = playerId ?? -1;
             if (PlayerId != -1) {
-                try {
-                    Player = _db.Players.Include(p => p.MatchDatas)
-                                        .ThenInclude(m => m.Match)
-                                        .Include(p => p.Rankings)
-                                        .Single(p => p.SteamId == PlayerId);
-                } catch (Exception) {
+                Player = await _db.Players.IgnoreQueryFilters()
+                                    .Include(p => p.Matches)
+                                    .ThenInclude(m => m.Match)
+                                    .Include(p => p.Rankings)
+                                    .SingleOrDefaultAsync(p => p.SteamId == PlayerId);
+                if (Player == null) {
                     PlayerId = -1;
                     return;
                 }
-                var steamPlayer = RequestPlayers(PlayerId);
+                var steamPlayer = await _steamApi.GetPlayerInformation(PlayerId);
                 if (steamPlayer.ContainsKey(PlayerId)) {
                     SteamPlayer = steamPlayer[PlayerId];
                 } else {
-                    SteamPlayer = new SteamPlayer() {
+                    SteamPlayer = new SteamInformation() {
                         PersonaName = PlayerId.ToString(),
                         Avatar = ""
                     };

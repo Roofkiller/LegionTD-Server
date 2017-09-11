@@ -20,17 +20,17 @@ namespace LegionTDServerReborn.Pages
             _db = db;
         }
 
-        public void OnGet()
+        public async Task OnGetAsync()
         {
             var timeStamp = DateTime.Now.AddDays(-1);
-            DailyMatches = _db.Matches.Count(m => m.Date > timeStamp);
+            DailyMatches = await _db.Matches.CountAsync(m => m.Date > timeStamp);
             timeStamp = DateTime.Now.AddMonths(-1);
-            MonthlyPlayers = _db.Matches.Include(m => m.PlayerDatas)
+            MonthlyPlayers = await _db.Matches.Include(m => m.PlayerDatas)
                 .Where(m => m.Date > timeStamp)
                 .SelectMany(m => m.PlayerDatas)
                 .Select(p => p.PlayerId)
                 .Distinct()
-                .Count();
+                .CountAsync();
         }
     }
 }

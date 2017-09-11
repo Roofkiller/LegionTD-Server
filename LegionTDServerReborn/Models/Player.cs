@@ -14,29 +14,31 @@ namespace LegionTDServerReborn.Models
         [Key, DatabaseGenerated(DatabaseGeneratedOption.None)]
         public long SteamId { get; set; }
         [InverseProperty("Player")]
-        public List<PlayerMatchData> MatchDatas { get; set; }
+        public List<PlayerMatchData> Matches { get; set; }
         [InverseProperty("Player")]
         public List<Ranking> Rankings {get; set;}
+        [InverseProperty("Player")]
+        public List<SteamInformation> SteamInformation {get; set;}
         public Ranking Ranking => Rankings.FirstOrDefault(r => r.Type == RankingTypes.Rating);
-        public int Rating => DefaultRating + MatchDatas.Sum(m => m.RatingChange);
-        public float TimePlayed => MatchDatas.Where(m => !m.Match.IsTraining).Sum(m => m.Match.Duration);
-        public long EarnedTangos => MatchDatas.Where(m => !m.Match.IsTraining).Sum(m => m.EarnedTangos);
+        public int Rating => DefaultRating + Matches.Sum(m => m.RatingChange);
+        public float TimePlayed => Matches.Where(m => !m.Match.IsTraining).Sum(m => m.Match.Duration);
+        public long EarnedTangos => Matches.Where(m => !m.Match.IsTraining).Sum(m => m.EarnedTangos);
         public float TangosPerMinute => (EarnedTangos / TimePlayed).NaNToZero();
-        public long EarnedGold => MatchDatas.Where(m => !m.Match.IsTraining).Sum(m => m.EarnedGold);
+        public long EarnedGold => Matches.Where(m => !m.Match.IsTraining).Sum(m => m.EarnedGold);
         public float GoldPerMinute => (EarnedGold / TimePlayed).NaNToZero();
-        public int PlayedGames => MatchDatas.Count(m => !m.Match.IsTraining);
-        public int WonGames => MatchDatas.Count(m => m.Won && !m.Match.IsTraining);
-        public int LostGames => MatchDatas.Count(m => !m.Won && !m.Match.IsTraining);
+        public int PlayedGames => Matches.Count(m => !m.Match.IsTraining);
+        public int WonGames => Matches.Count(m => m.Won && !m.Match.IsTraining);
+        public int LostGames => Matches.Count(m => !m.Won && !m.Match.IsTraining);
         public float WinRate => (WonGames / (float)PlayedGames).NaNToZero();
-        public int WonDuels => MatchDatas.Where(m => !m.Match.IsTraining).Sum(m => m.WonDuels);
-        public int LostDuels => MatchDatas.Where(m => !m.Match.IsTraining).Sum(m => m.LostDuels);
-        public int PlayedDuels => MatchDatas.Where(m => !m.Match.IsTraining).Sum(m => m.WonDuels + m.LostDuels);
+        public int WonDuels => Matches.Where(m => !m.Match.IsTraining).Sum(m => m.WonDuels);
+        public int LostDuels => Matches.Where(m => !m.Match.IsTraining).Sum(m => m.LostDuels);
+        public int PlayedDuels => Matches.Where(m => !m.Match.IsTraining).Sum(m => m.WonDuels + m.LostDuels);
         public float DuelWinRate => (WonDuels / (float)PlayedDuels).NaNToZero();
-        public long Experience => MatchDatas.Where(m => !m.Match.IsTraining).Sum(m => m.Experience);
-        public long Kills => MatchDatas.Where(m => !m.Match.IsTraining).Sum(m => m.Kills);
-        public long Leaks => MatchDatas.Where(m => !m.Match.IsTraining).Sum(m => m.Leaks);
-        public long Sends => MatchDatas.Where(m => !m.Match.IsTraining).Sum(m => m.Sends);
-        public long Builds => MatchDatas.Where(m => !m.Match.IsTraining).Sum(m => m.Builds);
+        public long Experience => Matches.Where(m => !m.Match.IsTraining).Sum(m => m.Experience);
+        public long Kills => Matches.Where(m => !m.Match.IsTraining).Sum(m => m.Kills);
+        public long Leaks => Matches.Where(m => !m.Match.IsTraining).Sum(m => m.Leaks);
+        public long Sends => Matches.Where(m => !m.Match.IsTraining).Sum(m => m.Sends);
+        public long Builds => Matches.Where(m => !m.Match.IsTraining).Sum(m => m.Builds);
 
         public Player()
         {
@@ -44,7 +46,7 @@ namespace LegionTDServerReborn.Models
 
         public int GetRatingBefore(DateTime date)
         {
-            return DefaultRating + MatchDatas.Where(m => m.Match.Date < date).Sum(m => m.RatingChange);
+            return DefaultRating + Matches.Where(m => m.Match.Date < date).Sum(m => m.RatingChange);
         }
 
         // public Dictionary<string, long> FractionKills
@@ -74,7 +76,7 @@ namespace LegionTDServerReborn.Models
             get
             {
                 Dictionary<string, int> result = new Dictionary<string, int>();
-                foreach (var m in MatchDatas.Where(m => !m.Match.IsTraining))
+                foreach (var m in Matches.Where(m => !m.Match.IsTraining))
                     result[PlayedPrefix + m.Fraction.Name] = result.ContainsKey(PlayedPrefix + m.Fraction.Name) 
                                                 ? result[PlayedPrefix + m.Fraction.Name] + 1 
                                                 : 1;

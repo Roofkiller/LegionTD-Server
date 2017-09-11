@@ -20,7 +20,7 @@ namespace LegionTDServerReborn.Extensions
             var now = DateTime.Now;
             var span = now - date;
             if (span.TotalMinutes < 0) {
-                return $"less than a minute ago";
+                return "less than a minute ago";
             }
             if (span.TotalMinutes < 2) {
                 return "1 minute ago";

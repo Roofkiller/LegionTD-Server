@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using LegionTDServerReborn.ModelBinder;
 using LegionTDServerReborn.Models;
 using LegionTDServerReborn.Seed;
+using LegionTDServerReborn.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.ResponseCompression;
@@ -41,6 +42,7 @@ namespace LegionTDServerReborn
             });
 
             services.AddSingleton<IConfiguration>(Configuration);
+            services.AddTransient<SteamApi>();
 
             services.AddMemoryCache();
             services.AddDbContext<LegionTdContext>(

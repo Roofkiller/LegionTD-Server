@@ -28,7 +28,7 @@
                             dictionary["Rank"] = "TBD";
                         }
                         dictionary["Rating"] = Model.Player.Rating.ToString();
-                        dictionary["Last Game"] = Model.Player.MatchDatas.Max(m => m.Match.Date).ToRelativeText();
+                        dictionary["Last Game"] = Model.Player.Matches.Max(m => m.Match.Date).ToRelativeText();
                         dictionary["Record"] = $"<span class='radiant'>{Model.Player.WonGames}</span> - <span class='dire'>{@Model.Player.LostGames}</span>";
                         dictionary["Win Rate"] = $"{Model.Player.WinRate * 100:00.00}%";
                         <div class='row'>
@@ -90,9 +90,9 @@
                                 }
                             </td>
                             <td>@item.Match.LastWave</td>
-                            <td>@Html.FormatRatingChange(item.RatingChange)</td>
+                            <td>@Html.FormatRatingChange(item)</td>
                         </tr>;
-                    foreach(var match in @Model.Player.MatchDatas.OrderByDescending(m => m.MatchId).Take(50)) {
+                    foreach(var match in @Model.Player.Matches.OrderByDescending(m => m.MatchId).Take(50)) {
                         @printMatch(match)
                     }
                 }

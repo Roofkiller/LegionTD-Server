@@ -12,9 +12,10 @@ using System;
 namespace LegionTDServerReborn.Migrations
 {
     [DbContext(typeof(LegionTdContext))]
-    partial class LegionTdContextModelSnapshot : ModelSnapshot
+    [Migration("20170911152352_AddedSteamInformation")]
+    partial class AddedSteamInformation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -226,7 +227,7 @@ namespace LegionTDServerReborn.Migrations
 
             modelBuilder.Entity("LegionTDServerReborn.Models.SteamInformation", b =>
                 {
-                    b.Property<long>("SteamId");
+                    b.Property<long>("PlayerId");
 
                     b.Property<DateTimeOffset>("Time");
 
@@ -238,7 +239,7 @@ namespace LegionTDServerReborn.Migrations
 
                     b.Property<string>("RealName");
 
-                    b.HasKey("SteamId", "Time");
+                    b.HasKey("PlayerId", "Time");
 
                     b.ToTable("SteamInformation");
                 });
@@ -380,7 +381,7 @@ namespace LegionTDServerReborn.Migrations
                 {
                     b.HasOne("LegionTDServerReborn.Models.Player", "Player")
                         .WithMany("SteamInformation")
-                        .HasForeignKey("SteamId")
+                        .HasForeignKey("PlayerId")
                         .OnDelete(DeleteBehavior.Cascade);
                 });
 

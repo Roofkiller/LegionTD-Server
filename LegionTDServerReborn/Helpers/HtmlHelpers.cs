@@ -46,9 +46,12 @@ namespace LegionTDServerReborn.Helpers {
             return result;                
         }
 
-        public static IHtmlContent FormatRatingChange(this IHtmlHelper html, int ratingChange) {
+        public static IHtmlContent FormatRatingChange(this IHtmlHelper html, PlayerMatchData data) {
             string result;
-            if ( ratingChange < 0) {
+            int ratingChange = data.RatingChange;
+            if (data.Match != null && data.Match.IsTraining) {
+                result = "training";
+            } else if ( ratingChange < 0) {
                 result = $"<span class='dire'>{ratingChange}</span>";
             } else {
                 result = $"<span class='radiant'>+{ratingChange}</span>";

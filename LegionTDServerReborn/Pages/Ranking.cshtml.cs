@@ -6,6 +6,7 @@ using System.Text;
 using System.IO;
 using System.Threading.Tasks;
 using LegionTDServerReborn.Models;
+using LegionTDServerReborn.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Configuration;
@@ -16,10 +17,10 @@ using Newtonsoft.Json.Linq;
 
 namespace LegionTDServerReborn.Pages
 {
-    public class RankingModel : SteamApiModel
+    public class RankingModel : PageModel
     {
         public const int PlayersPerSite = 50;
-        public Dictionary<long, SteamPlayer> SteamPlayers {get; set;}
+        public Dictionary<long, SteamInformation> SteamPlayers {get; set;}
         public List<Ranking> Ranking {get; set;}
         public List<Player> Players {get; set;} = new List<Player>();
 
@@ -29,18 +30,20 @@ namespace LegionTDServerReborn.Pages
         public int PageCount => (int)Math.Floor(PlayerCount / (float)PlayersPerSite);
         public int PlayerCount {get; set;}
 
-        public RankingModel(IConfiguration configuration, LegionTdContext db)
-            :base(configuration) {
+        private SteamApi _steamApi;
+
+        public RankingModel(SteamApi steamApi, LegionTdContext db) {
             _db = db;
+            _steamApi = steamApi;
         }
 
-        public void OnGet(int? site)
+        public async Task OnGetAsync(int? site)
         {
             Site = site ?? 1;
-            Ranking = _db.Rankings
+            Ranking = (await _db.Rankings
                 .Where(r => r.Position >= (Site - 1) * PlayersPerSite 
                          && r.Position < Site * PlayersPerSite)
-                .ToList()
+                .ToListAsync())
                 .OrderBy(r => r.Position)
                 .ToList();
 
@@ -54,11 +57,11 @@ namespace LegionTDServerReborn.Pages
                 values.Append($", {idList[i]}");
             }
             var sql = $"SELECT * FROM Players p WHERE SteamId IN ({values})";
-            var tmp = _db.Players.Include(p => p.MatchDatas).FromSql(sql).AsNoTracking().ToList();
+            var tmp = _db.Players.Include(p => p.Matches).FromSql(sql).AsNoTracking().ToList();
             for(int i = 0; i < Ranking.Count; i++) {
                 Players.Add(tmp.First(p => p.SteamId == Ranking[i].PlayerId));
             }
-            SteamPlayers = RequestPlayers(Ranking.Select(p => p.PlayerId).ToArray());
+            SteamPlayers = await _steamApi.GetPlayerInformation(Ranking.Select(p => p.PlayerId).ToArray());
         }
     }
 }

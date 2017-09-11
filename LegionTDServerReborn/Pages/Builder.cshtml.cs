@@ -16,32 +16,35 @@ using Newtonsoft.Json.Linq;
 
 namespace LegionTDServerReborn.Pages
 {
-    public class BuilderModel : SteamApiModel
+    public class BuilderModel : PageModel
     {
-        public string BuilderName {get; set;}
+        public string BuilderName {get; private set;}
 
-        public Fraction Builder {get; set;}
+        public bool Valid => Builder != null;
 
-        public FractionStatistic Statistic {get; set;}
+        public Fraction Builder {get; private set;}
+
+        public FractionStatistic Statistic {get; private set;}
 
         private LegionTdContext _db;
 
-        public BuilderModel(IConfiguration configuration, LegionTdContext db)
-            :base(configuration) {
+        public BuilderModel(LegionTdContext db) {
                 _db = db;
-            }
+        }
 
-        public void OnGet(string builder)
+        public async Task OnGetAsync(string builder)
         {
             BuilderName = builder ?? "";
-            Builder = _db.Fractions.Include(b => b.Units)
+            Builder = await _db.Fractions.Include(b => b.Units)
                 .ThenInclude(u => u.Abilities)
                 .ThenInclude(a => a.Ability)
                 .Include(b => b.Units)
                 .ThenInclude(u => u.SpawnAbility)
                 .Include(b => b.Statistics)
-                .Single(f => f.Name == BuilderName);
-            Statistic = Builder.CurrentStatistic;
+                .SingleOrDefaultAsync(f => f.Name == BuilderName);
+            if (Builder != null) {
+                Statistic = Builder.CurrentStatistic;
+            }
         }
     }
 }
