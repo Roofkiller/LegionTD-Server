@@ -512,7 +512,7 @@ namespace LegionTDServerReborn.Controllers
 
         private async Task DecideIsTraining(Match match)
         {
-            var ma = await _db.Matches.Include(m => m.PlayerDatas).SingleAsync(m => m.MatchId == match.MatchId);
+            var ma = await _db.Matches.IgnoreQueryFilters().Include(m => m.PlayerDatas).SingleAsync(m => m.MatchId == match.MatchId);
             ma.IsTraining = ma.PlayerDatas.All(p => p.Team == match.Winner) ||
                             ma.PlayerDatas.All(p => p.Team != match.Winner);
             _db.Entry(ma).State = EntityState.Modified;
