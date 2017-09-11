@@ -7,6 +7,7 @@
 @{
     ViewData["Title"] = "Last Matches";
 }
+
 <h2>@ViewData["Title"]</h2>
 
 <p>
@@ -80,12 +81,12 @@
                         <td>@match.LastWave</td>
                         <td>@Html.TeamToHtml(match.Winner)</td>
                         <td>
-                            @foreach(var player in match.PlayerDatas.Where(p => p.Team == 2)) {
+                            @foreach(var player in match.PlayerData.Where(p => p.Team == 2)) {
                                 @player.FractionName.ToBuilderIcon()
                             }
                         </td>
                         <td>
-                            @foreach(var player in match.PlayerDatas.Where(p => p.Team == 3)) {
+                            @foreach(var player in match.PlayerData.Where(p => p.Team == 3)) {
                                 @player.FractionName.ToBuilderIcon()
                             }
                         </td>

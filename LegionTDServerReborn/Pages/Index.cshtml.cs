@@ -25,9 +25,9 @@ namespace LegionTDServerReborn.Pages
             var timeStamp = DateTime.Now.AddDays(-1);
             DailyMatches = await _db.Matches.CountAsync(m => m.Date > timeStamp);
             timeStamp = DateTime.Now.AddMonths(-1);
-            MonthlyPlayers = await _db.Matches.Include(m => m.PlayerDatas)
+            MonthlyPlayers = await _db.Matches.Include(m => m.PlayerData)
                 .Where(m => m.Date > timeStamp)
-                .SelectMany(m => m.PlayerDatas)
+                .SelectMany(m => m.PlayerData)
                 .Select(p => p.PlayerId)
                 .Distinct()
                 .CountAsync();

@@ -22,6 +22,7 @@ using Microsoft.EntityFrameworkCore.Scaffolding.Internal;
 using MySql.Data.MySqlClient;
 using Match = LegionTDServerReborn.Models.Match;
 using LegionTDServerReborn.Utils;
+using LegionTDServerReborn.Services;
 using System.Net;
 using System.IO;
 
@@ -32,6 +33,7 @@ namespace LegionTDServerReborn.Controllers
     {
         private readonly IMemoryCache _cache;
         private LegionTdContext _db;
+        private SteamApi _steamApi;
         private const string PlayerCountKey = "player_count";
 
 
@@ -40,10 +42,11 @@ namespace LegionTDServerReborn.Controllers
             base.Dispose(disposing);
         }
 
-        public LegionTdController(LegionTdContext context, IMemoryCache cache)
+        public LegionTdController(LegionTdContext context, SteamApi steamApi, IMemoryCache cache)
         {
             _db = context;
             _cache = cache;
+            _steamApi = steamApi;
         }
 
         private static class GetMethods
@@ -106,7 +109,7 @@ namespace LegionTDServerReborn.Controllers
                 return Json(new MissingArgumentFailure());
             }
             return Json(await _db.Matches.Include(m => m.Duels)
-                .Include(m => m.PlayerDatas).SingleOrDefaultAsync(m => m.MatchId == matchId.Value));
+                .Include(m => m.PlayerData).SingleOrDefaultAsync(m => m.MatchId == matchId.Value));
         }
 
         public async Task<ActionResult> GetRecentMatches(int? from, int? to) {
@@ -299,9 +302,9 @@ namespace LegionTDServerReborn.Controllers
                 .Where(f => f.Name == fractionName)
                 .SelectMany(b => b.PlayedMatches.Where(m => m.Match.Date > yesterday))
                 .CountAsync();
-            var pickRate = await _db.Matches.Include(m => m.PlayerDatas)
+            var pickRate = await _db.Matches.Include(m => m.PlayerData)
                 .Where(m => m.Date > yesterday)
-                .AverageAsync(m => m.PlayerDatas.Count(p => p.FractionName == fractionName));
+                .AverageAsync(m => m.PlayerData.Count(p => p.FractionName == fractionName));
             Console.WriteLine(fractionName + " " + wins);
             Console.WriteLine(fractionName + " " + count);
             Console.WriteLine(fractionName + " " + pickRate);
@@ -506,15 +509,15 @@ namespace LegionTDServerReborn.Controllers
             await DecideIsTraining(match);
             // await UpdateFractionDatas(match);
             await ModifyRatings(playerMatchDatas, match);
-
+            await _steamApi.UpdatePlayerInformation(players.Select(p => p.SteamId));
             return Json(new {Success = true});
         }
 
         private async Task DecideIsTraining(Match match)
         {
-            var ma = await _db.Matches.IgnoreQueryFilters().Include(m => m.PlayerDatas).SingleAsync(m => m.MatchId == match.MatchId);
-            ma.IsTraining = ma.PlayerDatas.All(p => p.Team == match.Winner) ||
-                            ma.PlayerDatas.All(p => p.Team != match.Winner);
+            var ma = await _db.Matches.IgnoreQueryFilters().Include(m => m.PlayerData).SingleAsync(m => m.MatchId == match.MatchId);
+            ma.IsTraining = ma.PlayerData.All(p => p.Team == match.Winner) ||
+                            ma.PlayerData.All(p => p.Team != match.Winner);
             _db.Entry(ma).State = EntityState.Modified;
             await _db.SaveChangesAsync();
         }
@@ -525,7 +528,7 @@ namespace LegionTDServerReborn.Controllers
             foreach (var pl in playerMatchDatas)
                 l.Add(await _db.Players
                     .Include(p => p.Matches)
-                    .ThenInclude(m => m.Match.PlayerDatas)
+                    .ThenInclude(m => m.Match.PlayerData)
                     .SingleAsync(player => player.SteamId == pl.PlayerId));
             foreach (var p in l.Select(p => p.Matches.Single(m => m.MatchId == match.MatchId)))
                 p.RatingChange = p.CalculateRatingChange();

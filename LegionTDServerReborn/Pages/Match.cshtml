@@ -112,7 +112,7 @@
                 </thead>
                 <tbody>
                     @{
-                        var radiantPlayers = @Model.Match.PlayerDatas.Where(p => p.Team == team);
+                        var radiantPlayers = @Model.Match.PlayerData.Where(p => p.Team == team);
                         foreach(var player in @radiantPlayers) {
                             @printPlayer(player)
                         }

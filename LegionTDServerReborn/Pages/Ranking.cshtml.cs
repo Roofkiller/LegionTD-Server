@@ -20,7 +20,6 @@ namespace LegionTDServerReborn.Pages
     public class RankingModel : PageModel
     {
         public const int PlayersPerSite = 50;
-        public Dictionary<long, SteamInformation> SteamPlayers {get; set;}
         public List<Ranking> Ranking {get; set;}
         public List<Player> Players {get; set;} = new List<Player>();
 
@@ -57,11 +56,14 @@ namespace LegionTDServerReborn.Pages
                 values.Append($", {idList[i]}");
             }
             var sql = $"SELECT * FROM Players p WHERE SteamId IN ({values})";
-            var tmp = _db.Players.Include(p => p.Matches).FromSql(sql).AsNoTracking().ToList();
+            var tmp = (await _steamApi.GetPlayerInformation(
+                Ranking.Select(p => p.PlayerId),
+                q => q.Include(p => p.Matches)
+                    .FromSql(sql)
+            )).Values.ToArray();
             for(int i = 0; i < Ranking.Count; i++) {
                 Players.Add(tmp.First(p => p.SteamId == Ranking[i].PlayerId));
             }
-            SteamPlayers = await _steamApi.GetPlayerInformation(Ranking.Select(p => p.PlayerId).ToArray());
         }
     }
 }

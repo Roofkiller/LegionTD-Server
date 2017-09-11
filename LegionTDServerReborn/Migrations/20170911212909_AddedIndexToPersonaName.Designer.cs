@@ -12,9 +12,10 @@ using System;
 namespace LegionTDServerReborn.Migrations
 {
     [DbContext(typeof(LegionTdContext))]
-    partial class LegionTdContextModelSnapshot : ModelSnapshot
+    [Migration("20170911212909_AddedIndexToPersonaName")]
+    partial class AddedIndexToPersonaName
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -139,8 +140,7 @@ namespace LegionTDServerReborn.Migrations
                     b.Property<string>("PersonaName")
                         .HasColumnType("VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci");
 
-                    b.Property<string>("ProfileUrl")
-                        .HasColumnType("VARCHAR(511) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci");
+                    b.Property<string>("ProfileUrl");
 
                     b.Property<string>("RealName")
                         .HasColumnType("VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci");

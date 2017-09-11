@@ -23,7 +23,7 @@ namespace LegionTDServerReborn.Pages
 
         public Match Match {get; set;}
 
-        public Dictionary<long, SteamInformation> Players {get; set;}
+        public Dictionary<long, Player> Players {get; set;}
 
         private LegionTdContext _db;
 
@@ -37,8 +37,8 @@ namespace LegionTDServerReborn.Pages
         public async Task OnGetAsync(int matchId)
         {
             MatchId = matchId;
-            Match = await _db.Matches.Include(m => m.Duels).Include(m => m.PlayerDatas).SingleOrDefaultAsync(m => m.MatchId == matchId);
-            Players = await _steamApi.GetPlayerInformation(Match.PlayerDatas.Select(p => p.PlayerId).ToArray());
+            Match = await _db.Matches.Include(m => m.Duels).Include(m => m.PlayerData).SingleOrDefaultAsync(m => m.MatchId == matchId);
+            Players = await _steamApi.GetPlayerInformation(Match.PlayerData.Select(p => p.PlayerId));
         }
 
     }

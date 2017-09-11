@@ -1,0 +1,85 @@
+@page
+@using LegionTDServerReborn.Models
+@using LegionTDServerReborn.Extensions
+@using LegionTDServerReborn.Helpers
+@using Microsoft.AspNetCore.Html
+@model SearchModel
+@{
+    ViewData["Title"] = $"Search: {Model.SearchTerm}";
+}
+
+@functions {
+    public class SearchResult {
+        public string Title;
+        public string Desc;
+
+        public static SearchResult FromMatch(Match match) {
+            return new SearchResult{
+                Title = $"Match #{match.MatchId}",
+                Desc = match.GetFormattedDate()
+            };
+        }
+
+        public static SearchResult FromUnit(Unit unit) {
+            return new SearchResult{
+                Title = unit.GetDisplayName(),
+                Desc = ""
+            };
+        }
+
+        public static SearchResult FromBuilder(Fraction builder) {
+            return new SearchResult{
+                Title = builder.ToBuilderName(),
+                Desc = ""
+            };
+        }
+
+        public static SearchResult FromPlayer(Player player) {
+            return new SearchResult{
+                Title = player.PersonaName,
+                Desc = player.RealName
+            };
+        }
+    }
+}
+
+<h2>Search results for: @Model.SearchTerm</h2>
+
+@{
+    Func<SearchResult, IHtmlContent> printResult = 
+        @<div class="col-md-3 col-sm-6 col-xs-6 col-lg-2">
+            <p>@item.Title</p>
+            <p>@item.Desc</p>
+        </div>;
+
+    if (Model.Match != null) {
+        <div class="row">
+            <h3>Match</h3>
+            @printResult(SearchResult.FromMatch(Model.Match))
+        </div>
+    }
+    if (Model.Builders.Count > 0) {
+        <div class="row">
+            <h3>Builder</h3>
+            @foreach(var b in Model.Builders) {
+                @printResult(SearchResult.FromBuilder(b));
+            }
+        </div>
+    }
+    if (Model.Units.Count > 0) {
+        <div class="row">
+            <h3>Units</h3>
+            @foreach(var u in Model.Units) {
+                @printResult(SearchResult.FromUnit(u));
+            }
+        </div>
+    }
+    if (Model.Players.Count > 0) {
+        <div class="row">
+            <h3>Players</h3>
+            @foreach(var p in Model.Players) {
+                @printResult(SearchResult.FromPlayer(p));
+            }
+        </div>
+    }
+}

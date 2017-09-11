@@ -11,14 +11,9 @@ namespace LegionTDServerReborn.Pages
 {
     public class MatchesModel : PageModel
     {
-        private string _steamApiKey => _configuration["steamApiKey"];
-
-        private IConfiguration _configuration;
-
         private LegionTdContext _db;
 
-        public MatchesModel(IConfiguration configuration, LegionTdContext db) {
-            this._configuration = configuration;
+        public MatchesModel(LegionTdContext db) {
             _db = db;
         }
         
@@ -35,7 +30,7 @@ namespace LegionTDServerReborn.Pages
         public async Task OnGetAsync(int? site)
         {
             Site = site ?? 1;
-            Matches = await _db.Matches.Include(m => m.PlayerDatas)
+            Matches = await _db.Matches.Include(m => m.PlayerData)
                                 .OrderByDescending(m => m.MatchId)
                                 .Skip((Site - 1) * MatchesPerSite)
                                 .Take(MatchesPerSite).ToListAsync();

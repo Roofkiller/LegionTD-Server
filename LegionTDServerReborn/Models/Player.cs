@@ -17,8 +17,13 @@ namespace LegionTDServerReborn.Models
         public List<PlayerMatchData> Matches { get; set; }
         [InverseProperty("Player")]
         public List<Ranking> Rankings {get; set;}
-        [InverseProperty("Player")]
-        public List<SteamInformation> SteamInformation {get; set;}
+        [Column(TypeName = "VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci")]
+        public string PersonaName {get; set;}
+        public string Avatar {get; set;}
+        [Column(TypeName = "VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci")]
+        public string RealName {get; set;}
+        [Column(TypeName = "VARCHAR(511) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci")]
+        public string ProfileUrl {get; set;}
         public Ranking Ranking => Rankings.FirstOrDefault(r => r.Type == RankingTypes.Rating);
         public int Rating => DefaultRating + Matches.Sum(m => m.RatingChange);
         public float TimePlayed => Matches.Where(m => !m.Match.IsTraining).Sum(m => m.Match.Duration);

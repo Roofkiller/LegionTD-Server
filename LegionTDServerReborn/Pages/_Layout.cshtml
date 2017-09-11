@@ -35,15 +35,17 @@
                     <li><a asp-page="/Ranking">Ranking</a></li>
                     <li><a asp-page="/Matches">Last Matches</a></li>
                     <li><a asp-page="/BugReport">Bug Report</a></li>
-                    <li>
-                        <!-- <form class="form-inline">
-                            <input type="text" class='form-control'/>
-                            <button type="submit" style="background : none; border: none; color: white;">
-                                <i class="fa fa-search" aria-hidden="true"></i>
-                            </button>
-                        </form> -->
-                    </li>
                 </ul>
+		        <div class="col-sm-3 col-md-3 pull-right">
+                    <form class="navbar-form" role="search">
+                        <div class="input-group">
+                            <input type="text" class="form-control" placeholder="Search" name="searchTerm" id="searchTerm">
+                            <div class="input-group-btn">
+                                <button class="btn btn-default" asp-page="/Search" type="submit"><i class="fa fa-search" aria-hidden="true"></i></button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </nav>

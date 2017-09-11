@@ -6,7 +6,7 @@
 @model PlayerModel
 @{
     if (Model.PlayerId != -1) {
-        ViewData["Title"] = @Model.SteamPlayer.PersonaName;
+        ViewData["Title"] = @Model.Player.PersonaName;
     } else {
         ViewData["Title"] = "Player not found";
     }
@@ -16,7 +16,7 @@
     <div class='row'>
         <div class='row match-header '>
             <div class='col-lg-4 col-md-3 match-title'>
-                <span class='match-title'><img src='@Model.SteamPlayer.Avatar'> @ViewData["Title"]</span>
+                <span class='match-title'><img src='@Model.Player.Avatar'> @ViewData["Title"]</span>
             </div>
             <div class='col-lg-8 col-md-9 col-sm-12 col-xs-12' style="">
                 <div id='match_info' style="">

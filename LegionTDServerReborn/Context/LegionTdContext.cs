@@ -23,7 +23,6 @@ namespace LegionTDServerReborn.Models
         public DbSet<SpawnAbility> SpawnAbilities {get; set;}
         public DbSet<UnitAbility> UnitAbilities {get; set;}
         public DbSet<BugReport> BugReports {get; set;}
-        public DbSet<SteamInformation> SteamInformation {get; set;}
 
         public LegionTdContext(DbContextOptions<LegionTdContext> options)
             :base (options) {
@@ -40,7 +39,6 @@ namespace LegionTDServerReborn.Models
             modelBuilder.Entity<FractionStatistic>().HasKey(f => new {f.FractionName, f.TimeStamp});
             modelBuilder.Entity<Ranking>().HasKey(r => new { r.Type, r.Ascending, r.PlayerId});
             modelBuilder.Entity<UnitAbility>().HasKey(a => new {a.UnitName, a.Slot});
-            modelBuilder.Entity<SteamInformation>().HasKey(s => new {s.SteamId, s.Time});
 
             modelBuilder.Entity<Player>().HasMany(p => p.Rankings).WithOne(r => r.Player).HasForeignKey(r => r.PlayerId);
             modelBuilder.Entity<Player>().HasMany(p => p.Matches).WithOne(m => m.Player).HasForeignKey(m => m.PlayerId);
@@ -49,7 +47,6 @@ namespace LegionTDServerReborn.Models
             modelBuilder.Entity<Fraction>().HasMany(f => f.Statistics).WithOne(f => f.Fraction).HasForeignKey(f => f.FractionName);
             modelBuilder.Entity<Unit>().HasMany(u => u.Abilities).WithOne(a => a.Unit).HasForeignKey(u => u.UnitName);
             modelBuilder.Entity<Ability>().HasMany(a => a.Casters).WithOne(c => c.Ability).HasForeignKey(c => c.AbilityName);
-            modelBuilder.Entity<Player>().HasMany(p => p.SteamInformation).WithOne(s => s.Player).HasForeignKey(s => s.SteamId);
 
             modelBuilder.Entity<Unit>().HasOne(u => u.Parent).WithMany(p => p.Children).HasForeignKey(u => u.ParentName);
             modelBuilder.Entity<Unit>().HasOne(u => u.SpawnAbility).WithOne(a => a.Unit).HasForeignKey<SpawnAbility>(a => a.UnitName);
@@ -57,6 +54,8 @@ namespace LegionTDServerReborn.Models
             modelBuilder.Entity<Match>().Property(m => m.MatchId).ValueGeneratedOnAdd();
             
             modelBuilder.Entity<Ranking>().HasIndex(r => r.Position);
+
+            modelBuilder.Entity<Player>().HasIndex(p => p.PersonaName);
 
             modelBuilder.Entity<Match>().HasQueryFilter(m => !m.IsTraining);
         }

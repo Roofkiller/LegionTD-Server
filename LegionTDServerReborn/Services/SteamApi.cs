@@ -29,34 +29,68 @@ namespace LegionTDServerReborn.Services
             _db = db;
         }
 
-        public async Task<Dictionary<long, SteamInformation>> GetPlayerInformation(params long[] ids) {
-            Dictionary<long, SteamInformation> result = new Dictionary<long, SteamInformation>();
+        public async Task<Player> GetPlayerInformation(long playerIds, Func<IQueryable<Player>, IQueryable<Player>> query = null) {
+            var result = await GetPlayerInformation(new long[]{playerIds}, query);
+            return result.Count > 0 ? result.Values.First() : null;
+        }
+
+
+        public async Task<Dictionary<long, Player>> GetPlayerInformation(IEnumerable<long> playerIds, Func<IQueryable<Player>, IQueryable<Player>> query = null) {
+            if (query == null) {
+                query = q => q;
+            }
+            Dictionary<long, Player> result = new Dictionary<long, Player>();
             List<long> toRequest = new List<long>();
-            var saved = await _db.SteamInformation
-                .OrderByDescending(s => s.Time)
+            var ids = playerIds.ToArray();
+            var saved = await query(_db.Players)
                 .Where(s => ids.Contains(s.SteamId))
+                .AsNoTracking()
                 .ToListAsync();
             foreach(var id in ids) {
                 var info = saved.FirstOrDefault(s => s.SteamId == id);
-                if (info == null) {
+                if (info == null || info.Avatar == null) {
                     toRequest.Add(id);
                 } else {
                     result[id] = info;
                 }
             }
-            var requested = await RequestPlayerInformation(toRequest.ToArray());
+            var requested = await UpdatePlayerInformation_Internal(toRequest, query);
             foreach(var entry in requested) {
                 result[entry.Key] = entry.Value;
-                entry.Value.Time = DateTimeOffset.UtcNow;
-            }
-            if (requested.Count > 0) {
-                _db.SteamInformation.AddRange(requested.Values);
-                await _db.SaveChangesAsync();
             }
             return result;
         }
+        
+        public async Task<Dictionary<long, Player>> UpdatePlayerInformation(IEnumerable<long> ids) {
+            return await UpdatePlayerInformation_Internal(ids);
+        }
 
-        public async Task<Dictionary<long, SteamInformation>> RequestPlayerInformation(params long[] ids) {
+        private async Task<Dictionary<long, Player>> UpdatePlayerInformation_Internal(IEnumerable<long> playerIds, Func<IQueryable<Player>, IQueryable<Player>> query = null) {
+            if (query == null) {
+                query = q => q;
+            }
+            var ids = playerIds.ToArray();
+            var data = await RequestPlayerInformation(ids);
+            var players = await query(_db.Players).Where(p => ids.Contains(p.SteamId)).ToListAsync();
+            var result = new Dictionary<long, Player>(data.Count);
+            foreach(var entry in data) {
+                var player = players.FirstOrDefault(p => p.SteamId == entry.Key);
+                if (player == null) {
+                    _db.Players.Add(player = new Player{SteamId = entry.Key, Matches = new List<PlayerMatchData>()});
+                } else {
+                    _db.Entry(player).State = EntityState.Modified;
+                }
+                player.Avatar = entry.Value.Avatar;
+                player.PersonaName = entry.Value.PersonaName;
+                player.RealName = entry.Value.RealName;
+                player.ProfileUrl = entry.Value.ProfileUrl;
+                result[entry.Key] = player;
+            }
+            await _db.SaveChangesAsync();
+            return result;
+        }
+
+        public async Task<Dictionary<long, Player>> RequestPlayerInformation(IEnumerable<long> ids) {
             StringBuilder param = new StringBuilder();
             foreach(var player in ids) {
                 param.Append(player + ",");
@@ -69,10 +103,10 @@ namespace LegionTDServerReborn.Services
             string content = await reader.ReadToEndAsync();
             JObject parsed = JObject.Parse(content);
             var playerInfos = parsed["response"]["players"].ToArray();
-            Dictionary<long, SteamInformation> result = new Dictionary<long, SteamInformation>();
+            Dictionary<long, Player> result = new Dictionary<long, Player>();
             foreach(var playerInfo in playerInfos) {
                 var id = long.Parse(playerInfo["steamid"].ToString());
-                result[id] = JsonConvert.DeserializeObject<SteamInformation>(playerInfo.ToString());
+                result[id] = JsonConvert.DeserializeObject<Player>(playerInfo.ToString());
             }
             return result;
         }

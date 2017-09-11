@@ -65,7 +65,7 @@
                     @<tr class='clickable-row' data-href='/Player/@item.SteamId'>
                         <td>@(i++ + (Model.Site - 1) * RankingModel.PlayersPerSite)</td>
                         @try {
-                            <td><img src='@Model.SteamPlayers[item.SteamId].Avatar'> @Model.SteamPlayers[item.SteamId].PersonaName</td>
+                            <td><img src='@item.Avatar'> @item.PersonaName</td>
                         } catch(Exception) {
                             <td>@item.SteamId</td>
                         }

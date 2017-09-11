@@ -23,8 +23,6 @@ namespace LegionTDServerReborn.Pages
 
         public Player Player {get; set;}
 
-        public SteamInformation SteamPlayer {get; set;}
-
         private LegionTdContext _db;
 
         private SteamApi _steamApi;
@@ -38,24 +36,13 @@ namespace LegionTDServerReborn.Pages
         {
             PlayerId = playerId ?? -1;
             if (PlayerId != -1) {
-                Player = await _db.Players.IgnoreQueryFilters()
+                Player = await _steamApi.GetPlayerInformation(PlayerId, q => q.IgnoreQueryFilters()
                                     .Include(p => p.Matches)
                                     .ThenInclude(m => m.Match)
-                                    .Include(p => p.Rankings)
-                                    .SingleOrDefaultAsync(p => p.SteamId == PlayerId);
+                                    .Include(p => p.Rankings));
                 if (Player == null) {
                     PlayerId = -1;
                     return;
-                }
-                var steamPlayer = await _steamApi.GetPlayerInformation(PlayerId);
-                if (steamPlayer.ContainsKey(PlayerId)) {
-                    SteamPlayer = steamPlayer[PlayerId];
-                } else {
-                    SteamPlayer = new SteamInformation() {
-                        PersonaName = PlayerId.ToString(),
-                        Avatar = ""
-                    };
-                    PlayerId = -1;
                 }
             }
         }
