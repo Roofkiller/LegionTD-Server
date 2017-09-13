@@ -23,7 +23,7 @@ namespace LegionTDServerReborn.Pages
 
         public Match Match {get; private set;}
 
-        public List<Fraction> Builders {get; private set;} = new List<Fraction>();
+        public List<Builder> Builders {get; private set;} = new List<Builder>();
 
         public List<Unit> Units {get; private set;} = new List<Unit>();
 
@@ -49,8 +49,8 @@ namespace LegionTDServerReborn.Pages
                     (p.PersonaName.Contains(SearchTerm) && p.PersonaName.Length <= 4*SearchTerm.Length))
                 .Take(50)
                 .ToListAsync();
-            Builders = await _db.Fractions.Where(f => EF.Functions.Like(f.ToBuilderName(), $"%{searchTerm}%")).ToListAsync();
-            //Units = await _db.Units.Where(f => EF.Functions.Like(f.GetDisplayName(), $"%{searchTerm}%")).ToListAsync();
+            Builders = await _db.Builders.Where(b => b.DisplayName.Contains(searchTerm) && b.DisplayName.Length <= 3*searchTerm.Length).ToListAsync();
+            //Units = await _db.Units.Where(f => EF.Functions.Like(f.DisplayName, $"%{searchTerm}%")).ToListAsync();
         }
     }
 }

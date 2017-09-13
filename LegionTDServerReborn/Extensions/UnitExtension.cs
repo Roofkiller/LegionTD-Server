@@ -7,23 +7,6 @@ namespace LegionTDServerReborn.Extensions
 {
     public static class UnitExtension
     {
-        public static string GetDisplayName(this Unit unit) {
-            if (unit == null) {
-                throw new ArgumentNullException();
-            }
-            string input = unit.Name;
-            if (string.IsNullOrEmpty(input)) {
-                return input;
-            }
-            var parts = input.Split('_');
-            int startIndex = input.StartsWith("tower_") ? 2 : 1;
-            var result = new StringBuilder();
-            for (int i = startIndex; i < parts.Length; i++) {
-                result.Append(parts[i].FirstCharToUpper() + " ");
-            }
-            return result.ToString();
-        }
-
         public static Unit GetParent(this Unit unit) {
             if (unit.SpawnAbility == null) {
                 return null;

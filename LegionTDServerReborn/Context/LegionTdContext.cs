@@ -23,6 +23,7 @@ namespace LegionTDServerReborn.Models
         public DbSet<SpawnAbility> SpawnAbilities {get; set;}
         public DbSet<UnitAbility> UnitAbilities {get; set;}
         public DbSet<BugReport> BugReports {get; set;}
+        public DbSet<Builder> Builders {get; set;}
 
         public LegionTdContext(DbContextOptions<LegionTdContext> options)
             :base (options) {
@@ -48,7 +49,6 @@ namespace LegionTDServerReborn.Models
             modelBuilder.Entity<Unit>().HasMany(u => u.Abilities).WithOne(a => a.Unit).HasForeignKey(u => u.UnitName);
             modelBuilder.Entity<Ability>().HasMany(a => a.Casters).WithOne(c => c.Ability).HasForeignKey(c => c.AbilityName);
 
-            modelBuilder.Entity<Unit>().HasOne(u => u.Parent).WithMany(p => p.Children).HasForeignKey(u => u.ParentName);
             modelBuilder.Entity<Unit>().HasOne(u => u.SpawnAbility).WithOne(a => a.Unit).HasForeignKey<SpawnAbility>(a => a.UnitName);
 
             modelBuilder.Entity<Match>().Property(m => m.MatchId).ValueGeneratedOnAdd();

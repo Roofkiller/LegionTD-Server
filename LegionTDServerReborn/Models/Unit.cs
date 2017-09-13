@@ -24,17 +24,12 @@ namespace LegionTDServerReborn.Models
     {
         [Key]
         public string Name { get; set; }
+        public string DisplayName {get; set;}
         public int Experience { get; set; }
         public UnitType Type { get; set; }
+        public string FractionName {get; set;}
         [ForeignKey("FractionName")]
         public Fraction Fraction { get; set; }
-        public string FractionName {get; set;}
-
-        public string ParentName {get; set;}
-        [ForeignKey("ParentName")]
-        public Unit Parent {get; set;}
-        [InverseProperty("Parent")]
-        public List<Unit> Children {get; set;}
 
         public float AttackDamageMin {get; set;}
         public float AttackDamageMax {get; set;}
@@ -80,6 +75,11 @@ namespace LegionTDServerReborn.Models
 
             LegionAttackType = values.GetValueOrDefault("LegionAttackType");
             LegionDefendType = values.GetValueOrDefault("LegionDefendType");       
+
+            DisplayName = values.GetValueOrDefault("DisplayName");
+            if (string.IsNullOrEmpty(DisplayName)) {
+                DisplayName = Name;
+            }
         }
 
 

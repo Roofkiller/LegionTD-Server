@@ -26,17 +26,17 @@
 
         public static SearchResult FromUnit(Unit unit) {
             return new SearchResult{
-                Title = unit.GetDisplayName(),
+                Title = unit.DisplayName,
                 Desc = "",
                 Image = ""
             };
         }
 
-        public static SearchResult FromBuilder(Fraction builder) {
+        public static SearchResult FromBuilder(Builder builder) {
             return new SearchResult{
-                Title = builder.ToBuilderName(),
+                Title = builder.DisplayName,
                 Desc = "",
-                Link = $"/Builder/{builder.Name}",
+                Link = $"/Builder/{builder.FractionName}",
                 Image = ""
             };
         }

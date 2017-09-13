@@ -60,6 +60,7 @@ namespace LegionTDServerReborn.Controllers
             public const string RecentMatches = "recent_matches";
             public const string UpdateFractionStatistics = "update_fractions";
             public const string UpdateRanking = "update_ranking";
+            public const string UpdatePlayerProfiles = "update_players";
         }
 
         private static readonly Dictionary<string, RankingTypes> RankingTypeDict = new Dictionary<string, RankingTypes>
@@ -98,6 +99,8 @@ namespace LegionTDServerReborn.Controllers
                     return await GetMatchInfo(matchId);
                 case GetMethods.RecentMatches:
                     return await GetRecentMatches(from, to);
+                case GetMethods.UpdatePlayerProfiles:
+                    return await UpdatePlayerProfiles();
                 default:
                     break;
             }
@@ -207,24 +210,20 @@ namespace LegionTDServerReborn.Controllers
                 .AsNoTracking();
         }
 
-        private async Task CheckUpdateRankings()
-        {
-            List<Task> tasks = new List<Task>();
-            foreach (RankingTypes value in Enum.GetValues(typeof(RankingTypes)))
-            {
-                if (value != RankingTypes.Rating) continue;
-                // var key = value + "|" + true;
-                // if (!_cache.TryGetValue(key, out object a))
-                //     tasks.Add(UpdateRanking(value, true));
-                var key = value + "|" + false;
-                if (!_cache.TryGetValue(key, out object b))
-                    tasks.Add(UpdateRanking(value, false));
+        private async Task<ActionResult> UpdatePlayerProfiles() {
+            if (!await CheckIp()) {
+                return Json(new NoPermissionFailure());
             }
-            foreach (var task in tasks)
-                await task;
+            int stepSize = 50;
+            await _steamApi.UpdatePlayerInformation(await _db.Players.OrderByDescending(p => p.SteamId).Where(p => p.Avatar == null).Take(stepSize).Select(p => p.SteamId).ToListAsync());
+            LoggingUtil.Log($"{stepSize} Player profiles have been requested.");
+            return Json(new {success = true});
         }
 
         private async Task<ActionResult> UpdateRankings() {
+            if (!await CheckIp()) {
+                return Json(new NoPermissionFailure());
+            }
             await UpdateRanking(RankingTypes.Rating, false);
             return Json(new {success = true});
         }
@@ -277,6 +276,9 @@ namespace LegionTDServerReborn.Controllers
         }
 
         private async Task<ActionResult> UpdateFractionStatistics() {
+            if (!await CheckIp()) {
+                return Json(new NoPermissionFailure());
+            }
             var fractions = await _db.Fractions.ToListAsync();
             var tasks = new List<Task>(fractions.Count);
             foreach(var fraction in fractions) {
@@ -330,7 +332,7 @@ namespace LegionTDServerReborn.Controllers
             public const string SaveMatchData = "save_match";
             public const string UpdateAbilityData = "update_abilities";
             public const string UpdateUnitData = "update_units";
-            public const string UpdatePlayerProfiles = "update_players";
+            public const string UpdateBuilders = "update_heroes";
         }
 
         [HttpPost]
@@ -349,19 +351,12 @@ namespace LegionTDServerReborn.Controllers
                     return await UpdateUnitData(data);
                 case PostMethods.UpdateAbilityData:
                     return await UpdateAbilityData(data);
-                case PostMethods.UpdatePlayerProfiles:
-                    return await UpdatePlayerProfiles();
+                case PostMethods.UpdateBuilders:
+                    return await UpdateBuilders(data);
                 case PostMethods.SavePlayerData:
                 default:
                     return Json(new InvalidRequestFailure());
             }
-        }
-
-        private async Task<ActionResult> UpdatePlayerProfiles() {
-            int stepSize = 9;
-            await _steamApi.UpdatePlayerInformation(await _db.Players.OrderBy(p => p.SteamId).Where(p => p.Avatar == null).Take(stepSize).Select(p => p.SteamId).ToListAsync());
-            LoggingUtil.Log($"{stepSize} Player profiles have been requested.");
-            return Json(new {success = true});
         }
 
         private async Task<bool> CheckIp() {
@@ -404,6 +399,42 @@ namespace LegionTDServerReborn.Controllers
             return result;
         }
 
+        private async Task<ActionResult> UpdateBuilders(string data) {
+            if (string.IsNullOrEmpty(data))
+                return Json(new MissingArgumentFailure());
+            JObject builderData;
+            try {
+                builderData = JObject.Parse(data);
+            } catch(Exception) {
+                return Json(new InvalidRequestFailure());
+            }
+            var builders = new List<Builder>();
+            foreach(var pair in builderData) {
+                string builderName = pair.Key;
+                string fraction;
+                try {
+                    fraction = pair.Value["LegionFraction"].Value<string>();
+                } catch(Exception) {
+                    fraction = "other";
+                }
+                Builder builder = await GetOrCreateBuilder(builderName);
+                builder.Fraction = await GetOrCreateFraction(fraction);
+                builder.UpdateValues(pair.Value);
+                await _db.Database.ExecuteSqlCommandAsync($"DELETE FROM UnitAbilities WHERE UnitName = {builderName};");
+                for (int i = 1; i <= 24; i++) {
+                    string abilityName = pair.Value.GetValueOrDefault($"Ability{i}");
+                    if (!string.IsNullOrEmpty(abilityName)) {
+                        await GetOrCreateUnitAbility(builderName, abilityName, i);
+                    }
+                }
+                builders.Add(builder);
+            }
+            _db.UpdateRange(builders.Select(u => u.Fraction).ToArray());
+            _db.UpdateRange(builders);
+            await _db.SaveChangesAsync();
+            return Json(new {Success = true});
+        }
+
         private async Task<ActionResult> UpdateUnitData(string data)
         {
             if (string.IsNullOrEmpty(data))
@@ -436,8 +467,8 @@ namespace LegionTDServerReborn.Controllers
                 }
                 units.Add(unit);
             }
-            _db.UpdateRange(units.Select(u => u.Fraction).ToArray());
-            _db.UpdateRange(units.ToArray());
+            _db.UpdateRange(units.Select(u => u.Fraction));
+            _db.UpdateRange(units);
             await _db.SaveChangesAsync();
             return Json(new {Success = true});
         }
@@ -659,6 +690,22 @@ namespace LegionTDServerReborn.Controllers
                 await _db.SaveChangesAsync();
             }
             return result;
+        }
+
+        private async Task<Builder> GetOrCreateBuilder(string builderName) {
+            Builder builder = await _db.Builders.FindAsync(builderName);
+            if (builder == null) {
+                builder = new Builder {
+                    Name = builderName
+                };
+                builder.SetTypeByName();
+                string fraction = builder.GetFractionByName();
+                builder.Fraction = await GetOrCreateFraction(fraction);
+                _db.Update(builder.Fraction);
+                _db.Builders.Add(builder);
+                await _db.SaveChangesAsync();
+            }
+            return builder;
         }
 
         private async Task<Unit> GetOrCreateUnit(string unitName)

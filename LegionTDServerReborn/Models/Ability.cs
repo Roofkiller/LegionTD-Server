@@ -11,6 +11,7 @@ namespace LegionTDServerReborn.Models {
     public class Ability {
         [Key]
         public string Name {get; set;}
+        public string DisplayName {get; set;}
         public int GoldCost {get; set;}
         public int ManaCost {get; set;}
         public float Cooldown {get; set;}
@@ -27,6 +28,10 @@ namespace LegionTDServerReborn.Models {
             ManaCost = values.GetValueOrDefaultInt("AbilityManaCost");
             Cooldown = values.GetValueOrDefaultFloat("AbilityCooldown");
             CastRange = values.GetValueOrDefaultFloat("AbilityCastRange");
+            DisplayName = values.GetValueOrDefault("DisplayName");
+            if (string.IsNullOrEmpty(DisplayName)) {
+                DisplayName = Name;
+            }
             return oldGoldCost != GoldCost || oldManaCost != ManaCost || oldCooldown != Cooldown || oldCastRange == CastRange;
         }
     }
