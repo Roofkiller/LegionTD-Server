@@ -37,7 +37,7 @@
                 Title = builder.DisplayName,
                 Desc = "",
                 Link = $"/Builder/{builder.FractionName}",
-                Image = ""
+                Image = $"/images/builder/{builder.FractionName}.png"
             };
         }
 
@@ -56,12 +56,12 @@
 
 @{
     Func<SearchResult, IHtmlContent> printResult = 
-        @<div class="col-md-3 col-sm-6 col-xs-6 col-lg-2">
-            <a class="search-result" href="@item.Link">
-                <div style="display: inline-block;">
+        @<div class="col-md-3 col-sm-4 col-xs-12 col-lg-3">
+            <a class="search-result" href="@item.Link" style="height: 55px;">
+                <div class="search-result-image">
                     <img src="@item.Image">
                 </div>
-                <div style="display: inline-block;">
+                <div>
                     @item.Title<br>
                     @item.Desc
                 </div>

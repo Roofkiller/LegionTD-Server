@@ -12,9 +12,10 @@ using System;
 namespace LegionTDServerReborn.Migrations
 {
     [DbContext(typeof(LegionTdContext))]
-    partial class LegionTdContextModelSnapshot : ModelSnapshot
+    [Migration("20170913191108_AddedUnitStatistics")]
+    partial class AddedUnitStatistics
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -350,7 +351,6 @@ namespace LegionTDServerReborn.Migrations
                 {
                     b.HasBaseType("LegionTDServerReborn.Models.Unit");
 
-                    b.Property<bool>("Public");
 
                     b.ToTable("Builder");
 
@@ -433,7 +433,7 @@ namespace LegionTDServerReborn.Migrations
             modelBuilder.Entity("LegionTDServerReborn.Models.UnitStatistic", b =>
                 {
                     b.HasOne("LegionTDServerReborn.Models.Unit", "Unit")
-                        .WithMany("Statistics")
+                        .WithMany()
                         .HasForeignKey("UnitName")
                         .OnDelete(DeleteBehavior.Cascade);
                 });

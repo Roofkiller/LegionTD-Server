@@ -49,7 +49,7 @@ namespace LegionTDServerReborn.Pages
                     (p.PersonaName.Contains(SearchTerm) && p.PersonaName.Length <= 4*SearchTerm.Length))
                 .Take(50)
                 .ToListAsync();
-            Builders = await _db.Builders.Where(b => b.DisplayName.Contains(searchTerm) && b.DisplayName.Length <= 3*searchTerm.Length).ToListAsync();
+            Builders = await _db.Builders.Where(b => b.Public && b.DisplayName.Contains(searchTerm) && b.DisplayName.Length <= 3*searchTerm.Length).ToListAsync();
             //Units = await _db.Units.Where(f => EF.Functions.Like(f.DisplayName, $"%{searchTerm}%")).ToListAsync();
         }
     }

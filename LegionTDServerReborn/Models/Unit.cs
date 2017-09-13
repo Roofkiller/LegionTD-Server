@@ -55,6 +55,11 @@ namespace LegionTDServerReborn.Models
         [InverseProperty("Unit")]
         public SpawnAbility SpawnAbility {get; set;}
 
+        [InverseProperty("Unit")]
+        public List<UnitStatistic> Statistics {get; set;}
+        public UnitStatistic CurrentStatistic => Statistics.OrderByDescending(s => s.TimeStamp).FirstOrDefault();
+    
+
         public void UpdateValues(JToken values) {
             Experience = values.GetValueOrDefaultInt("LegionExperience");
             

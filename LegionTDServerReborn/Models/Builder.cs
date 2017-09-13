@@ -7,6 +7,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace LegionTDServerReborn.Models {
     public class Builder : Unit {
-        
+        public bool Public {get; set;}
     }
 }

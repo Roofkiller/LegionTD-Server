@@ -24,6 +24,7 @@ namespace LegionTDServerReborn.Models
         public DbSet<UnitAbility> UnitAbilities {get; set;}
         public DbSet<BugReport> BugReports {get; set;}
         public DbSet<Builder> Builders {get; set;}
+        public DbSet<UnitStatistic> UnitStatistics {get; set;}
 
         public LegionTdContext(DbContextOptions<LegionTdContext> options)
             :base (options) {
@@ -40,6 +41,7 @@ namespace LegionTDServerReborn.Models
             modelBuilder.Entity<FractionStatistic>().HasKey(f => new {f.FractionName, f.TimeStamp});
             modelBuilder.Entity<Ranking>().HasKey(r => new { r.Type, r.Ascending, r.PlayerId});
             modelBuilder.Entity<UnitAbility>().HasKey(a => new {a.UnitName, a.Slot});
+            modelBuilder.Entity<UnitStatistic>().HasKey(s => new {s.UnitName, s.TimeStamp});
 
             modelBuilder.Entity<Player>().HasMany(p => p.Rankings).WithOne(r => r.Player).HasForeignKey(r => r.PlayerId);
             modelBuilder.Entity<Player>().HasMany(p => p.Matches).WithOne(m => m.Player).HasForeignKey(m => m.PlayerId);

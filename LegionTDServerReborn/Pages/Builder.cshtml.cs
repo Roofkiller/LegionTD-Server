@@ -40,6 +40,8 @@ namespace LegionTDServerReborn.Pages
                 .ThenInclude(a => a.Ability)
                 .Include(b => b.Units)
                 .ThenInclude(u => u.SpawnAbility)
+                .Include(b => b.Units)
+                .ThenInclude(u => u.Statistics)
                 .Include(b => b.Statistics)
                 .SingleOrDefaultAsync(f => f.Name == BuilderName);
             if (Builder != null) {

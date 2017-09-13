@@ -60,6 +60,7 @@ namespace LegionTDServerReborn.Controllers
             public const string RecentMatches = "recent_matches";
             public const string UpdateFractionStatistics = "update_fractions";
             public const string UpdateRanking = "update_ranking";
+            public const string UpdateUnitStatistics = "update_units";
             public const string UpdatePlayerProfiles = "update_players";
         }
 
@@ -91,8 +92,6 @@ namespace LegionTDServerReborn.Controllers
                     return await GetRankingFromTo(rType, from, to, ascending);
                 case GetMethods.RankingPosition:
                     return await GetPlayerPosition(steamId, rType, ascending);
-                case GetMethods.RankingPositions:
-                    break;
                 case GetMethods.MatchHistory:
                     return await GetMatchHistory(steamId, from, to);
                 case GetMethods.MatchInfo:
@@ -101,6 +100,9 @@ namespace LegionTDServerReborn.Controllers
                     return await GetRecentMatches(from, to);
                 case GetMethods.UpdatePlayerProfiles:
                     return await UpdatePlayerProfiles();
+                case GetMethods.UpdateUnitStatistics:
+                    return await UpdateUnitStatistics();
+                    break;
                 default:
                     break;
             }
@@ -275,17 +277,60 @@ namespace LegionTDServerReborn.Controllers
             LoggingUtil.Log("Ranking has been updated.");
         }
 
+        private async Task<ActionResult> UpdateUnitStatistics() {
+            if (!await CheckIp()) {
+                return Json(new NoPermissionFailure());
+            }
+            var units = await _db.Units.ToListAsync();
+            foreach(var unit in units) {
+                await UpdateUnitStatistic(unit.Name);
+            }
+            LoggingUtil.Log("Unit statistics have been updated.");
+            return Json(new {success = true});
+        }
+
+        private async Task UpdateUnitStatistic(string unitName) {
+            var unit = await GetOrCreateUnit(unitName);
+            var timeStamp = DateTimeOffset.UtcNow;
+            var now = DateTime.Now;
+            var yesterday = now.AddDays(-1);
+            var unitData = _db.PlayerUnitRelations
+                .Include(r => r.PlayerMatch)
+                .ThenInclude(p => p.Match)
+                .Where(r => r.PlayerMatch.Match.Date >= yesterday && r.PlayerMatch.Match.Date <= now && r.UnitName == unitName && r.PlayerMatch.FractionName == unit.FractionName);
+            var matchData = _db.PlayerMatchData
+                .Include(p => p.Match)
+                .Include(p => p.UnitDatas)
+                .Where(r => r.Match.Date >= yesterday && r.Match.Date <= now && r.FractionName == unit.FractionName);
+            int killed = await unitData.SumAsync(d => d.Killed);
+            int leaked = await unitData.SumAsync(d => d.Leaked);
+            int send = await unitData.SumAsync(d => d.Send);
+            int build = await unitData.SumAsync(d => d.Build);
+            var gameCount = await matchData.CountAsync();
+            var gamesBuild = await matchData.CountAsync(m => m.UnitDatas.Any(u => u.UnitName == unitName && u.Build > 0));
+            var gamesWon = await matchData.CountAsync(m => m.Match.Winner == m.Team && m.UnitDatas.Any(u => u.UnitName == unitName && u.Build > 0));
+            _db.UnitStatistics.Add(new UnitStatistic{
+                TimeStamp = timeStamp,
+                UnitName = unitName,
+                Killed = killed,
+                Leaked = leaked,
+                Send = send,
+                Build = build,
+                GamesBuild = gamesBuild,
+                GamesEvaluated = gameCount,
+                GamesWon = gamesWon
+            });
+            _db.Entry(unit).State = EntityState.Modified;
+            await _db.SaveChangesAsync();
+        }
+
         private async Task<ActionResult> UpdateFractionStatistics() {
             if (!await CheckIp()) {
                 return Json(new NoPermissionFailure());
             }
             var fractions = await _db.Fractions.ToListAsync();
-            var tasks = new List<Task>(fractions.Count);
             foreach(var fraction in fractions) {
-                tasks.Add(UpdateFractionStatistic(fraction.Name));
-            }
-            foreach(var task in tasks) {
-                await task;
+                await UpdateFractionStatistic(fraction.Name);
             }
             await _db.SaveChangesAsync();
             LoggingUtil.Log("Fraction statistics have been updated.");
@@ -307,9 +352,6 @@ namespace LegionTDServerReborn.Controllers
             var pickRate = await _db.Matches.Include(m => m.PlayerData)
                 .Where(m => m.Date > yesterday)
                 .AverageAsync(m => m.PlayerData.Count(p => p.FractionName == fractionName));
-            Console.WriteLine(fractionName + " " + wins);
-            Console.WriteLine(fractionName + " " + count);
-            Console.WriteLine(fractionName + " " + pickRate);
             FractionStatistic statistic = new FractionStatistic() {
                 TimeStamp = timeStamp,
                 Fraction = fraction,
@@ -549,7 +591,6 @@ namespace LegionTDServerReborn.Controllers
                 playerMatchDatas.Add(playerMatchData);
             }
             await DecideIsTraining(match);
-            // await UpdateFractionDatas(match);
             await ModifyRatings(playerMatchDatas, match);
             await _steamApi.UpdatePlayerInformation(players.Select(p => p.SteamId));
             return Json(new {Success = true});
