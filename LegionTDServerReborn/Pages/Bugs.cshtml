@@ -62,11 +62,11 @@
                         </td>
                         <td>
                             @if (bug.Done) {
-                                <button type="submit" asp-page-handler="unfix" asp-route-id="@bug.Id">Unfix</button>
+                                <button class="btn btn-default" type="submit" asp-page-handler="unfix" asp-route-id="@bug.Id">Unfix</button>
                             } else {
-                                <button type="submit" asp-page-handler="fix" asp-route-id="@bug.Id">Fix</button>
+                                <button class="btn btn-default" type="submit" asp-page-handler="fix" asp-route-id="@bug.Id">Fix</button>
                             }
-                            <button type="submit" asp-page-handler="delete" asp-route-id="@bug.Id">Delete</button>
+                            <button class="btn btn-default" type="submit" asp-page-handler="delete" asp-route-id="@bug.Id">Delete</button>
                         </td>
                     </tr>
                 }

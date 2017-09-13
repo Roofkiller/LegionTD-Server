@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using LegionTDServerReborn.Models;
+using LegionTDServerReborn.Extensions;
 using LegionTDServerReborn.Services;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Configuration;
@@ -18,13 +19,13 @@ namespace LegionTDServerReborn.Pages
         
         private SteamApi _steamApi;
 
-        public List<Player> Players {get; private set;}
+        public List<Player> Players {get; private set;} = new List<Player>();
 
         public Match Match {get; private set;}
 
-        public List<Fraction> Builders {get; private set;}
+        public List<Fraction> Builders {get; private set;} = new List<Fraction>();
 
-        public List<Unit> Units {get; private set;}
+        public List<Unit> Units {get; private set;} = new List<Unit>();
 
         public SearchModel(SteamApi steamApi, LegionTdContext db) {
             _db = db;
@@ -35,18 +36,21 @@ namespace LegionTDServerReborn.Pages
         {
             SearchTerm = string.IsNullOrEmpty(searchTerm) ? "" : searchTerm;
             if (string.IsNullOrEmpty(SearchTerm)) {
-                Players = new List<Player>();
                 return;
             }
             if (int.TryParse(searchTerm, out var id)) {
-                Match = await _db.Matches.FindAsync(id);
+                Match = await _db.Matches.IgnoreQueryFilters().FirstOrDefaultAsync(m => m.MatchId == id);
             } else {
                 id = -1;
             }
-            Players = await _db.Players.FromSql($"SELECT * FROM Players WHERE MATCH(PersonaName, ProfileUrl) AGAINST({SearchTerm} IN NATURAL LANGUAGE MODE) OR SteamId = {id}").ToListAsync();
-            Players = (await _steamApi.UpdatePlayerInformation(Players.Select(p => p.SteamId))).Values.ToList();
-            Builders = await _db.Fractions.Where(f => EF.Functions.Like(f.Name, $"%{searchTerm}%")).ToListAsync();
-            Units = await _db.Units.Where(f => EF.Functions.Like(f.Name, $"%{searchTerm}%")).ToListAsync();
+            Players = await _db.Players.Where(p => p.Avatar != null)
+                .Where(p => p.SteamId == id || 
+                    p.ProfileUrl == SearchTerm || 
+                    (p.PersonaName.Contains(SearchTerm) && p.PersonaName.Length <= 4*SearchTerm.Length))
+                .Take(50)
+                .ToListAsync();
+            Builders = await _db.Fractions.Where(f => EF.Functions.Like(f.ToBuilderName(), $"%{searchTerm}%")).ToListAsync();
+            //Units = await _db.Units.Where(f => EF.Functions.Like(f.GetDisplayName(), $"%{searchTerm}%")).ToListAsync();
         }
     }
 }

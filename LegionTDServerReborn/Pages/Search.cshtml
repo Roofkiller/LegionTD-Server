@@ -12,32 +12,41 @@
     public class SearchResult {
         public string Title;
         public string Desc;
+        public string Link;
+        public string Image;
 
         public static SearchResult FromMatch(Match match) {
             return new SearchResult{
                 Title = $"Match #{match.MatchId}",
-                Desc = match.GetFormattedDate()
+                Desc = match.GetFormattedDate(),
+                Link = $"/Match/{match.MatchId}",
+                Image = ""
             };
         }
 
         public static SearchResult FromUnit(Unit unit) {
             return new SearchResult{
                 Title = unit.GetDisplayName(),
-                Desc = ""
+                Desc = "",
+                Image = ""
             };
         }
 
         public static SearchResult FromBuilder(Fraction builder) {
             return new SearchResult{
                 Title = builder.ToBuilderName(),
-                Desc = ""
+                Desc = "",
+                Link = $"/Builder/{builder.Name}",
+                Image = ""
             };
         }
 
         public static SearchResult FromPlayer(Player player) {
             return new SearchResult{
                 Title = player.PersonaName,
-                Desc = player.RealName
+                Desc = "",
+                Link = $"/Player/{player.SteamId}",
+                Image = player.Avatar
             };
         }
     }
@@ -48,8 +57,15 @@
 @{
     Func<SearchResult, IHtmlContent> printResult = 
         @<div class="col-md-3 col-sm-6 col-xs-6 col-lg-2">
-            <p>@item.Title</p>
-            <p>@item.Desc</p>
+            <a class="search-result" href="@item.Link">
+                <div style="display: inline-block;">
+                    <img src="@item.Image">
+                </div>
+                <div style="display: inline-block;">
+                    @item.Title<br>
+                    @item.Desc
+                </div>
+            </a>
         </div>;
 
     if (Model.Match != null) {

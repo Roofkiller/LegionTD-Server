@@ -204,7 +204,6 @@ namespace LegionTDServerReborn.Controllers
                 .ThenInclude(m => m.Fraction)
                 .Include(p => p.Matches)
                 .ThenInclude(m => m.Match)
-                // .Include(p => p.FractionDatas)
                 .AsNoTracking();
         }
 
@@ -274,7 +273,7 @@ namespace LegionTDServerReborn.Controllers
                 ") AS pr, \n" +
                 "(SELECT @rownum := 0) AS r \n";
             await _db.Database.ExecuteSqlCommandAsync(sql);
-            Console.WriteLine($"Updated ranking for {type} {asc}");
+            LoggingUtil.Log("Ranking has been updated.");
         }
 
         private async Task<ActionResult> UpdateFractionStatistics() {
@@ -287,6 +286,7 @@ namespace LegionTDServerReborn.Controllers
                 await task;
             }
             await _db.SaveChangesAsync();
+            LoggingUtil.Log("Fraction statistics have been updated.");
             return Json(new {success = true});
         }
 
@@ -330,6 +330,7 @@ namespace LegionTDServerReborn.Controllers
             public const string SaveMatchData = "save_match";
             public const string UpdateAbilityData = "update_abilities";
             public const string UpdateUnitData = "update_units";
+            public const string UpdatePlayerProfiles = "update_players";
         }
 
         [HttpPost]
@@ -339,6 +340,7 @@ namespace LegionTDServerReborn.Controllers
             if (!await CheckIp()) {
                 return Json(new NoPermissionFailure());
             }
+            LoggingUtil.Log($"Called method {method}");
             switch (method)
             {
                 case PostMethods.SaveMatchData:
@@ -347,10 +349,19 @@ namespace LegionTDServerReborn.Controllers
                     return await UpdateUnitData(data);
                 case PostMethods.UpdateAbilityData:
                     return await UpdateAbilityData(data);
+                case PostMethods.UpdatePlayerProfiles:
+                    return await UpdatePlayerProfiles();
                 case PostMethods.SavePlayerData:
                 default:
                     return Json(new InvalidRequestFailure());
             }
+        }
+
+        private async Task<ActionResult> UpdatePlayerProfiles() {
+            int stepSize = 9;
+            await _steamApi.UpdatePlayerInformation(await _db.Players.OrderBy(p => p.SteamId).Where(p => p.Avatar == null).Take(stepSize).Select(p => p.SteamId).ToListAsync());
+            LoggingUtil.Log($"{stepSize} Player profiles have been requested.");
+            return Json(new {success = true});
         }
 
         private async Task<bool> CheckIp() {
@@ -358,11 +369,11 @@ namespace LegionTDServerReborn.Controllers
             var ranges = await GetDotaIpRanges();
             foreach(var range in ranges) {
                 if (range.IsInRange(ipAddress)) {
-                    Console.WriteLine($"Client {ipAddress} is in Range {range.Lower} - {range.Upper}.");
+                    LoggingUtil.Log($"Client {ipAddress} is in Range {range.Lower} - {range.Upper}");
                     return true;
                 }
             }
-            Console.WriteLine($"Connection to {ipAddress.ToString()} refused.");
+            LoggingUtil.Warn($"Connection to {ipAddress} refused.");
             return false;
         }
 
