@@ -10,39 +10,7 @@
 
 <h2>@ViewData["Title"]</h2>
 
-<p>
-    @if (Model.Site > 1) {
-        <a asp-page="./Matches" asp-route-site="1" class='matches-site'>« First</a>
-        <a asp-page="./Matches" asp-route-site="@(Model.Site - 1)" class='matches-site'>‹ Prev</a>
-    }
-    @if (Model.Site >= 6) {
-        <span class='matches-site'>...</span>
-    }
-    @{
-        for (int i = Model.Site - 4; i < Model.Site; i++) {
-            if (i <= 0) {
-                continue;
-            }
-            <a asp-page="./Matches" asp-route-site="@i" class='matches-site'>@i</a>
-        }
-    }
-    <span class='matches-site matches-site-current'>@Model.Site</span>
-    @{
-        for (int i = Model.Site + 1; i <= Model.Site + 4; i++) {
-            if (i >= Model.PageCount - 1) {
-                continue;
-            }
-            <a asp-page="./Matches" asp-route-site="@i" class='matches-site'>@i</a>
-        }
-    }
-    @if (Model.Site < Model.PageCount - 4) {
-        <span class='matches-site'>...</span>
-    }
-    @if (Model.Site < Model.PageCount) {
-        <a asp-page="./Matches" asp-route-site="@(Model.Site + 1)" class='matches-site'>Next ›</a>
-        <a asp-page="./Matches" asp-route-site="@(Model.PageCount)" class='matches-site'>Last »</a>
-    }
-</p>
+@Html.Partial("_PartialSiteViewNavigator", Model)
 <div class='table-responsive'>
     <table class="table table-responsive table-hover table-striped">
         <col width='10%'><col width='20%'><col width='10%'><col width='10%'><col width='10%'><col width='20%'><col width='20%'>
@@ -82,12 +50,12 @@
                         <td>@Html.TeamToHtml(match.Winner)</td>
                         <td>
                             @foreach(var player in match.PlayerData.Where(p => p.Team == 2)) {
-                                @player.FractionName.ToBuilderIcon()
+                                @Html.Partial("_PartialFractionIcon", player.FractionName)
                             }
                         </td>
                         <td>
                             @foreach(var player in match.PlayerData.Where(p => p.Team == 3)) {
-                                @player.FractionName.ToBuilderIcon()
+                                @Html.Partial("_PartialFractionIcon", player.FractionName)
                             }
                         </td>
                     </tr>;
@@ -99,39 +67,7 @@
 <p class='text-right matches-indicator'>
     @((Model.Site-1) * MatchesModel.MatchesPerSite + 1) - @(Model.Site * MatchesModel.MatchesPerSite) of @Model.MatchCount
 </p>
-<p>
-    @if (Model.Site > 1) {
-        <a asp-page="./Matches" asp-route-site="1" class='matches-site'>« First</a>
-        <a asp-page="./Matches" asp-route-site="@(Model.Site - 1)" class='matches-site'>‹ Prev</a>
-    }
-    @if (Model.Site >= 6) {
-        <span class='matches-site'>...</span>
-    }
-    @{
-        for (int i = Model.Site - 4; i < Model.Site; i++) {
-            if (i <= 0) {
-                continue;
-            }
-            <a asp-page="./Matches" asp-route-site="@i" class='matches-site'>@i</a>
-        }
-    }
-    <span class='matches-site matches-site-current'>@Model.Site</span>
-    @{
-        for (int i = Model.Site + 1; i <= Model.Site + 4; i++) {
-            if (i >= Model.PageCount - 1) {
-                continue;
-            }
-            <a asp-page="./Matches" asp-route-site="@i" class='matches-site'>@i</a>
-        }
-    }
-    @if (Model.Site < Model.PageCount - 4) {
-        <span class='matches-site'>...</span>
-    }
-    @if (Model.Site < Model.PageCount) {
-        <a asp-page="./Matches" asp-route-site="@(Model.Site + 1)" class='matches-site'>Next ›</a>
-        <a asp-page="./Matches" asp-route-site="@(Model.PageCount)" class='matches-site'>Last »</a>
-    }
-</p>
+@Html.Partial("_PartialSiteViewNavigator", Model)
 
 @section scripts {
     <script>

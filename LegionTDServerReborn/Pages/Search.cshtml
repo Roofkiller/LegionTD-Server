@@ -8,56 +8,12 @@
     ViewData["Title"] = $"Search: {Model.SearchTerm}";
 }
 
-@functions {
-    public class SearchResult {
-        public string Title;
-        public string Desc;
-        public string Link;
-        public string Image;
-
-        public static SearchResult FromMatch(Match match) {
-            return new SearchResult{
-                Title = $"Match #{match.MatchId}",
-                Desc = match.GetFormattedDate(),
-                Link = $"/Match/{match.MatchId}",
-                Image = ""
-            };
-        }
-
-        public static SearchResult FromUnit(Unit unit) {
-            return new SearchResult{
-                Title = unit.DisplayName,
-                Desc = "",
-                Image = ""
-            };
-        }
-
-        public static SearchResult FromBuilder(Builder builder) {
-            return new SearchResult{
-                Title = builder.DisplayName,
-                Desc = "",
-                Link = $"/Builder/{builder.FractionName}",
-                Image = $"/images/builder/{builder.FractionName}.png"
-            };
-        }
-
-        public static SearchResult FromPlayer(Player player) {
-            return new SearchResult{
-                Title = player.PersonaName,
-                Desc = "",
-                Link = $"/Player/{player.SteamId}",
-                Image = player.Avatar
-            };
-        }
-    }
-}
-
 <h2>Search results for: @Model.SearchTerm</h2>
 
 @{
     Func<SearchResult, IHtmlContent> printResult = 
         @<div class="col-md-3 col-sm-4 col-xs-12 col-lg-3">
-            <a class="search-result" href="@item.Link" style="height: 55px;">
+            <a class="search-result" href="@Url.RouteUrl($"{item.AspPage}/{item.AspRouteValue}")" style="height: 55px;">
                 <div class="search-result-image">
                     <img src="@item.Image">
                 </div>
@@ -71,14 +27,14 @@
     if (Model.Match != null) {
         <div class="row">
             <h3>Match</h3>
-            @printResult(SearchResult.FromMatch(Model.Match))
+            @Html.Partial("_PartialSearchResult", SearchResult.FromMatch(Model.Match))
         </div>
     }
     if (Model.Builders.Count > 0) {
         <div class="row">
             <h3>Builder</h3>
             @foreach(var b in Model.Builders) {
-                @printResult(SearchResult.FromBuilder(b));
+                @Html.Partial("_PartialSearchResult", SearchResult.FromBuilder(b))
             }
         </div>
     }
@@ -86,7 +42,7 @@
         <div class="row">
             <h3>Units</h3>
             @foreach(var u in Model.Units) {
-                @printResult(SearchResult.FromUnit(u));
+                @Html.Partial("_PartialSearchResult", SearchResult.FromUnit(u))
             }
         </div>
     }
@@ -94,7 +50,7 @@
         <div class="row">
             <h3>Players</h3>
             @foreach(var p in Model.Players) {
-                @printResult(SearchResult.FromPlayer(p));
+                @Html.Partial("_PartialSearchResult", SearchResult.FromPlayer(p))
             }
         </div>
     }

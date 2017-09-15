@@ -1,0 +1,5 @@
+@using LegionTDServerReborn.Models
+@model Player
+@if (Model != null) {
+    <a asp-page="/Player" asp-route-playerId="@Model.SteamId"><img src="@Model.Avatar"> @Model.PersonaName</a>
+}

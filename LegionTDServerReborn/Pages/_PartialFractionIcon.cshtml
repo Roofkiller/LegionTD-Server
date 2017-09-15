@@ -1,0 +1,7 @@
+@using LegionTDServerReborn.Models
+@model string
+@if (Model != null) {
+    <a asp-page="/Builder" asp-route-builder="@Model"><img src="/images/builder/@(Model + ".png")" class="builder-icon"></a>
+} else {
+    <span>wtf</span>
+}

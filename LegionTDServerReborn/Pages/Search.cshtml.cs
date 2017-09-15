@@ -17,8 +17,6 @@ namespace LegionTDServerReborn.Pages
 
         private LegionTdContext _db;
         
-        private SteamApi _steamApi;
-
         public List<Player> Players {get; private set;} = new List<Player>();
 
         public Match Match {get; private set;}
@@ -27,9 +25,8 @@ namespace LegionTDServerReborn.Pages
 
         public List<Unit> Units {get; private set;} = new List<Unit>();
 
-        public SearchModel(SteamApi steamApi, LegionTdContext db) {
+        public SearchModel(LegionTdContext db) {
             _db = db;
-            _steamApi = steamApi;
         }
 
         public async Task OnGetAsync(string searchTerm)

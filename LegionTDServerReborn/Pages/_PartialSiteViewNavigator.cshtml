@@ -1,0 +1,37 @@
+@using LegionTDServerReborn.Models
+@model SiteView
+@if (Model != null) {
+    <p>
+        @if (Model.Site > 1) {
+            <a asp-page="@Model.PageName" asp-route-site="1" class='matches-site'>« First</a>
+            <a asp-page="@Model.PageName" asp-route-site="@(Model.Site - 1)" class='matches-site'>‹ Prev</a>
+        }
+        @if (Model.Site >= 6) {
+            <span class='matches-site'>...</span>
+        }
+        @{
+            for (int i = Model.Site - 4; i < Model.Site; i++) {
+                if (i <= 0) {
+                    continue;
+                }
+                <a asp-page="@Model.PageName" asp-route-site="@i" class='matches-site'>@i</a>
+            }
+        }
+        <span class='matches-site matches-site-current'>@Model.Site</span>
+        @{
+            for (int i = Model.Site + 1; i <= Model.Site + 4; i++) {
+                if (i > Model.PageCount) {
+                    continue;
+                }
+                <a asp-page="@Model.PageName" asp-route-site="@i" class='matches-site'>@i</a>
+            }
+        }
+        @if (Model.Site < Model.PageCount - 4) {
+            <span class='matches-site'>...</span>
+        }
+        @if (Model.Site < Model.PageCount) {
+            <a asp-page="@Model.PageName" asp-route-site="@(Model.Site + 1)" class='matches-site'>Next ›</a>
+            <a asp-page="@Model.PageName" asp-route-site="@(Model.PageCount)" class='matches-site'>Last »</a>
+        }
+    </p>
+}

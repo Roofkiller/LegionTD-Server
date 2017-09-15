@@ -27,18 +27,18 @@ namespace LegionTDServerReborn.Pages
 
         private LegionTdContext _db;
 
-        private SteamApi _steamApi;
-
-        public MatchModel(SteamApi steamApi, LegionTdContext db) {
+        public MatchModel(LegionTdContext db) {
                 _db = db;
-                _steamApi = steamApi;
         }
 
         public async Task OnGetAsync(int matchId)
         {
             MatchId = matchId;
-            Match = await _db.Matches.IgnoreQueryFilters().Include(m => m.Duels).Include(m => m.PlayerData).SingleOrDefaultAsync(m => m.MatchId == matchId);
-            Players = await _steamApi.GetPlayerInformation(Match.PlayerData.Select(p => p.PlayerId));
+            Match = await _db.Matches.IgnoreQueryFilters()
+                .Include(m => m.Duels)
+                .Include(m => m.PlayerData)
+                .ThenInclude(p => p.Player)
+                .SingleOrDefaultAsync(m => m.MatchId == matchId);
         }
 
     }

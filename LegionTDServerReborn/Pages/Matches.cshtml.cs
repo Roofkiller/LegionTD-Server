@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LegionTDServerReborn.Pages
 {
-    public class MatchesModel : PageModel
+    public class MatchesModel : PageModel, SiteView
     {
         private LegionTdContext _db;
 
@@ -27,6 +27,12 @@ namespace LegionTDServerReborn.Pages
 
         public int PageCount => (int)Math.Ceiling(MatchCount / (float)MatchesPerSite);
 
+        public string PageName => "./Matches";
+
+        public int EntryCount => MatchCount;
+
+        public int EntriesPerSite => MatchesPerSite;
+
         public async Task OnGetAsync(int? site)
         {
             Site = site ?? 1;
@@ -34,7 +40,7 @@ namespace LegionTDServerReborn.Pages
                                 .OrderByDescending(m => m.MatchId)
                                 .Skip((Site - 1) * MatchesPerSite)
                                 .Take(MatchesPerSite).ToListAsync();
-            MatchCount = await _db.Matches.Where(m => !m.IsTraining).CountAsync();
+            MatchCount = await _db.Matches.CountAsync();
         }
     }
 }

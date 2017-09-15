@@ -1,0 +1,19 @@
+@using LegionTDServerReborn.Models
+@using LegionTDServerReborn.Extensions
+@using LegionTDServerReborn.Helpers
+@using Microsoft.AspNetCore.Html
+@model SearchResult
+
+@if (Model != null) {
+    <div class="col-md-3 col-sm-4 col-xs-12 col-lg-3">
+        <a class="search-result" href="@Model.Link" style="height: 55px;">
+            <div class="search-result-image">
+                <img src="@Model.Image">
+            </div>
+            <div>
+                @Model.Title<br>
+                @Model.Desc
+            </div>
+        </a>
+    </div>
+}

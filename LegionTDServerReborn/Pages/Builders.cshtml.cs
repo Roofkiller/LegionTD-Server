@@ -23,8 +23,6 @@ namespace LegionTDServerReborn.Pages
 
         private LegionTdContext _db;
 
-        private SteamApi _steamApi;
-
         public BuildersModel(LegionTdContext db) {
             _db = db;
         }

@@ -47,6 +47,7 @@
 
     <h3>Matches</h3>
 
+    @Html.Partial("_PartialSiteViewNavigator", Model)
     <div class='table-responsive'>
         <table class="table table-responsive table-hover table-striped">
             <thead>
@@ -75,7 +76,7 @@
                 @{
                     Func<PlayerMatchData, IHtmlContent> printMatch = 
                         @<tr class='clickable-row' data-href='/Match/@item.MatchId'>
-                            <td>@item.FractionName.ToBuilderIcon()</td>
+                            <td>@Html.Partial("_PartialFractionIcon", item.FractionName)</td>
                             <td>@item.Match.GetFormattedDate()</td>
                             <td>@item.Match.GetFormattedTime()</td>
                             <td>
@@ -92,13 +93,14 @@
                             <td>@item.Match.LastWave</td>
                             <td>@Html.FormatRatingChange(item)</td>
                         </tr>;
-                    foreach(var match in @Model.Player.Matches.OrderByDescending(m => m.MatchId).Take(50)) {
+                    foreach(var match in @Model.Player.Matches.OrderByDescending(m => m.MatchId).Skip((Model.Site - 1) * Model.EntriesPerSite).Take(Model.EntriesPerSite)) {
                         @printMatch(match)
                     }
                 }
             </tbody>
         </table>
     </div>
+    @Html.Partial("_PartialSiteViewNavigator", Model)
 } else {
     <h2>Player not found.</h2>
 }

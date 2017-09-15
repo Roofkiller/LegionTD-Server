@@ -17,11 +17,21 @@ using Newtonsoft.Json.Linq;
 
 namespace LegionTDServerReborn.Pages
 {
-    public class PlayerModel : PageModel
+    public class PlayerModel : PageModel, SiteView
     {
         public long PlayerId {get; set;}
 
         public Player Player {get; set;}
+
+        public string PageName => "./Player";
+
+        public int EntryCount {get; private set;}
+
+        public int EntriesPerSite => 50;
+
+        public int PageCount => (int)Math.Ceiling(EntryCount/(float)EntriesPerSite);
+
+        public int Site {get; private set;}
 
         private LegionTdContext _db;
 
@@ -32,9 +42,10 @@ namespace LegionTDServerReborn.Pages
             _steamApi = steamApi;
         }
 
-        public async Task OnGetAsync(long? playerId)
+        public async Task OnGetAsync(long playerId, int? site)
         {
-            PlayerId = playerId ?? -1;
+            PlayerId = playerId;
+            Site = site ?? 1;
             if (PlayerId != -1) {
                 Player = await _steamApi.GetPlayerInformation(PlayerId, q => q.IgnoreQueryFilters()
                                     .Include(p => p.Matches)
@@ -44,6 +55,7 @@ namespace LegionTDServerReborn.Pages
                     PlayerId = -1;
                     return;
                 }
+                EntryCount = Player.Matches.Count;
             }
         }
     }

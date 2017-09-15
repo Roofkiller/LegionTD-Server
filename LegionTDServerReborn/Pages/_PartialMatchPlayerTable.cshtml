@@ -1,0 +1,74 @@
+@using LegionTDServerReborn.Models
+@using LegionTDServerReborn.Extensions
+@using LegionTDServerReborn.Helpers
+@using Microsoft.AspNetCore.Html
+@model IEnumerable<PlayerMatchData>
+@if (Model != null) {
+    <div class="table-responsive">
+        <table class="table table-striped table-hover match-player-table">
+            <col width="20%"><col width="10%"><col width="10%"><col width="12%"><col width="12%"><col width="12%"><col width="12%"><col width="12%">
+            <thead>
+                <tr>
+                    <th>
+                        Player
+                    </th>
+                    <th class='text-center'>
+                        Builder
+                    </th>
+                    <th class='text-center'>
+                        Abandoned
+                    </th>
+                    <th class='text-center'>
+                        Rating
+                    </th>
+                    <th class='text-right'>
+                        Experience
+                    </th>
+                    <th class='text-right'>
+                        Kills
+                    </th>
+                    <th class='text-right'>
+                        Leaks
+                    </th>
+                    <th class='text-right'>
+                        Builds
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                @{
+                    foreach(var player in Model) {
+                        <tr>
+                            <td>
+                                @Html.Partial("_PartialPlayer", player.Player)
+                            </td>
+                            <td class='text-center'>
+                                @Html.Partial("_PartialFractionIcon", player.FractionName)
+                            </td>
+                            <td class='text-center'>
+                                @if (player.Abandoned) {
+                                    <i class="fa fa-times dire" aria-hidden="true"></i>
+                                }
+                            </td>
+                            <td class='text-center'>
+                                @Html.FormatRatingChange(player)
+                            </td>
+                            <td class='text-right'>
+                                @player.Experience
+                            </td>
+                            <td class='text-right'>
+                                @player.Kills
+                            </td>
+                            <td class='text-right'>
+                                @player.Leaks
+                            </td>
+                            <td class='text-right'>
+                                @player.Builds
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+}

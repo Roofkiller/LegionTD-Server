@@ -14,6 +14,8 @@ namespace LegionTDServerReborn.Pages
         public int DailyMatches {get; set;}
         public int MonthlyPlayers {get; set;}
 
+        public string message;
+
         private LegionTdContext _db;
 
         public IndexModel(LegionTdContext db) {
