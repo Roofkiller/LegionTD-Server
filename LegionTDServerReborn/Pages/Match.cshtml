@@ -37,7 +37,7 @@
     Func<PlayerMatchData, IHtmlContent> printPlayer = 
         @<tr>
             <td>
-                <a href='/Player/@item.PlayerId'>
+                <a asp-page="./Player" asp-route-playerId="@item.PlayerId">
                     <span>
                         <img src='@Model.Players[item.PlayerId].Avatar'>
                     </span>

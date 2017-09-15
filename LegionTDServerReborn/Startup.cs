@@ -39,6 +39,11 @@ namespace LegionTDServerReborn
             services.AddMvc(config =>
             {
                 config.ModelBinderProviders.Insert(0, new InvariantFloatModelBinderProvider());
+            }).AddRazorPagesOptions(options => {
+                options.Conventions.AddPageRoute("/Ranking", "Players");
+                options.Conventions.AddPageRoute("/Player", "Players/{playerId:long}");
+                options.Conventions.AddPageRoute("/Match", "Matches/{matchId:int}");
+                options.Conventions.AddPageRoute("/Builder", "Builders/{builder}");
             });
 
             services.AddSingleton<IConfiguration>(Configuration);

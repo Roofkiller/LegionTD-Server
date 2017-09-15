@@ -74,7 +74,7 @@ namespace LegionTDServerReborn.Helpers {
         }
 
         public static HtmlString ToBuilderIcon(this string builder) {
-            return new HtmlString($"<a href='/Builder/{builder}'><img class='builder-icon' src='/images/builder/{builder}.png'></a>");
+            return new HtmlString($"<a href='/Builders/{builder}'><img class='builder-icon' src='/images/builder/{builder}.png'></a>");
         }
     }
 

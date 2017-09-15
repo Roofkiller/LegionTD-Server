@@ -674,8 +674,10 @@ namespace LegionTDServerReborn.Controllers
             }
             List<PlayerUnitRelation> result = relations.Values.ToList();
 
-            _db.UpdateRange(result.Select(r => r.Unit));
-            _db.Update(playerMatchData);
+            foreach(var unit in result.Select(r => r.Unit)){
+                _db.Entry(unit).State = EntityState.Modified;
+            }
+            _db.Entry(playerMatchData).State = EntityState.Modified;
             _db.PlayerUnitRelations.AddRange(result);
             
             await _db.SaveChangesAsync();
@@ -689,7 +691,7 @@ namespace LegionTDServerReborn.Controllers
                 .ThenInclude(pd => pd.Duels)
                 .SingleAsync(pd => pd.MatchId == playerMatchData.MatchId && pd.PlayerId == playerMatchData.PlayerId);
             p.CalculateStats();
-            _db.Update(p);
+            _db.Entry(p).State = EntityState.Modified;
 
             await _db.SaveChangesAsync();
 

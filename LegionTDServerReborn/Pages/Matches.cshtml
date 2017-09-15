@@ -1,4 +1,4 @@
-﻿@page "{site:int?}"
+﻿@page
 @using LegionTDServerReborn.Models
 @using Microsoft.AspNetCore.Html
 @using LegionTDServerReborn.Extensions
@@ -12,18 +12,18 @@
 
 <p>
     @if (Model.Site > 1) {
-        <a href="/Matches/1" class='matches-site'>« First</a>
-        <a href="/Matches/@(Model.Site - 1)" class='matches-site'>‹ Prev</a>
+        <a asp-page="./Matches" asp-route-site="1" class='matches-site'>« First</a>
+        <a asp-page="./Matches" asp-route-site="@(Model.Site - 1)" class='matches-site'>‹ Prev</a>
     }
     @if (Model.Site >= 6) {
-        <span clkass='matches-site'>...</span>
+        <span class='matches-site'>...</span>
     }
     @{
         for (int i = Model.Site - 4; i < Model.Site; i++) {
             if (i <= 0) {
                 continue;
             }
-            <a href='/Matches/@i' class='matches-site'>@i</a>
+            <a asp-page="./Matches" asp-route-site="@i" class='matches-site'>@i</a>
         }
     }
     <span class='matches-site matches-site-current'>@Model.Site</span>
@@ -32,15 +32,15 @@
             if (i >= Model.PageCount - 1) {
                 continue;
             }
-            <a href='/Matches/@i' class='matches-site'>@i</a>
+            <a asp-page="./Matches" asp-route-site="@i" class='matches-site'>@i</a>
         }
     }
     @if (Model.Site < Model.PageCount - 4) {
-        <span clkass='matches-site'>...</span>
+        <span class='matches-site'>...</span>
     }
     @if (Model.Site < Model.PageCount) {
-        <a href="/Matches/@(Model.Site + 1)" class='matches-site'>Next ›</a>
-        <a href="/Matches/@(Model.PageCount)" class='matches-site'>Last »</a>
+        <a asp-page="./Matches" asp-route-site="@(Model.Site + 1)" class='matches-site'>Next ›</a>
+        <a asp-page="./Matches" asp-route-site="@(Model.PageCount)" class='matches-site'>Last »</a>
     }
 </p>
 <div class='table-responsive'>
@@ -74,7 +74,7 @@
         <tbody id="match_table_body">
             @{
                 foreach(var match in @Model.Matches) {
-                    <tr class='clickable-row' data-href='/Match/@match.MatchId'>
+                    <tr class='clickable-row' data-href='/Matches/@match.MatchId'>
                         <td>@match.MatchId</td>
                         <td>@match.GetFormattedDate()</td>
                         <td>@match.GetFormattedTime()</td>
@@ -101,18 +101,18 @@
 </p>
 <p>
     @if (Model.Site > 1) {
-        <a href="/Matches/1" class='matches-site'>« First</a>
-        <a href="/Matches/@(Model.Site - 1)" class='matches-site'>‹ Prev</a>
+        <a asp-page="./Matches" asp-route-site="1" class='matches-site'>« First</a>
+        <a asp-page="./Matches" asp-route-site="@(Model.Site - 1)" class='matches-site'>‹ Prev</a>
     }
     @if (Model.Site >= 6) {
-        <span clkass='matches-site'>...</span>
+        <span class='matches-site'>...</span>
     }
     @{
         for (int i = Model.Site - 4; i < Model.Site; i++) {
             if (i <= 0) {
                 continue;
             }
-            <a href='/Matches/@i' class='matches-site'>@i</a>
+            <a asp-page="./Matches" asp-route-site="@i" class='matches-site'>@i</a>
         }
     }
     <span class='matches-site matches-site-current'>@Model.Site</span>
@@ -121,15 +121,15 @@
             if (i >= Model.PageCount - 1) {
                 continue;
             }
-            <a href='/Matches/@i' class='matches-site'>@i</a>
+            <a asp-page="./Matches" asp-route-site="@i" class='matches-site'>@i</a>
         }
     }
     @if (Model.Site < Model.PageCount - 4) {
-        <span clkass='matches-site'>...</span>
+        <span class='matches-site'>...</span>
     }
     @if (Model.Site < Model.PageCount) {
-        <a href="/Matches/@(Model.Site + 1)" class='matches-site'>Next ›</a>
-        <a href="/Matches/@(Model.PageCount)" class='matches-site'>Last »</a>
+        <a asp-page="./Matches" asp-route-site="@(Model.Site + 1)" class='matches-site'>Next ›</a>
+        <a asp-page="./Matches" asp-route-site="@(Model.PageCount)" class='matches-site'>Last »</a>
     }
 </p>
 

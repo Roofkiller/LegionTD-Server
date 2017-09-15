@@ -1,4 +1,4 @@
-@page "{site:int?}"
+@page 
 @using LegionTDServerReborn.Models
 @using LegionTDServerReborn.Extensions
 @using Microsoft.AspNetCore.Html
@@ -11,18 +11,18 @@
 
 <p>
     @if (Model.Site > 1) {
-        <a href="/Ranking/1" class='matches-site'>« First</a>
-        <a href="/Ranking/@(Model.Site - 1)" class='matches-site'>‹ Prev</a>
+        <a asp-page="./Ranking" asp-route-site="1" class='matches-site'>« First</a>
+        <a asp-page="./Ranking" asp-route-site="@(Model.Site - 1)" class='matches-site'>‹ Prev</a>
     }
     @if (Model.Site >= 6) {
-        <span clkass='matches-site'>...</span>
+        <span class='matches-site'>...</span>
     }
     @{
         for (int j = Model.Site - 4; j < Model.Site; j++) {
             if (j <= 0) {
                 continue;
             }
-            <a href='/Ranking/@j' class='matches-site'>@j</a>
+            <a asp-page="./Ranking" asp-route-site="@j"  class='matches-site'>@j</a>
         }
     }
     <span class='matches-site matches-site-current'>@Model.Site</span>
@@ -31,15 +31,15 @@
             if (j >= Model.PageCount - 1) {
                 continue;
             }
-            <a href='/Ranking/@j' class='matches-site'>@j</a>
+            <a asp-page="./Ranking" asp-route-site="@j"  class='matches-site'>@j</a>
         }
     }
     @if (Model.Site < Model.PageCount - 4) {
-        <span clkass='matches-site'>...</span>
+        <span class='matches-site'>...</span>
     }
     @if (Model.Site < Model.PageCount) {
-        <a href="/Ranking/@(Model.Site + 1)" class='matches-site'>Next ›</a>
-        <a href="/Ranking/@(Model.PageCount)" class='matches-site'>Last »</a>
+        <a asp-page="./Ranking" asp-route-site="@(Model.Site + 1)"  class='matches-site'>Next ›</a>
+        <a asp-page="./Ranking" asp-route-site="@(Model.PageCount)"  class='matches-site'>Last »</a>
     }
 </p>
 <div class='table-responsive'>
@@ -62,7 +62,7 @@
             @{
                 int i = 1;
                 Func<Player, IHtmlContent> printPlayer = 
-                    @<tr class='clickable-row' data-href='/Player/@item.SteamId'>
+                    @<tr class='clickable-row' data-href='/Players/@item.SteamId'>
                         <td>@(i++ + (Model.Site - 1) * RankingModel.PlayersPerSite)</td>
                         @try {
                             <td><img src='@item.Avatar'> @item.PersonaName</td>
@@ -80,18 +80,18 @@
 </div>
 <p>
     @if (Model.Site > 1) {
-        <a href="/Ranking/1" class='matches-site'>« First</a>
-        <a href="/Ranking/@(Model.Site - 1)" class='matches-site'>‹ Prev</a>
+        <a asp-page="./Ranking" asp-route-site="1" class='matches-site'>« First</a>
+        <a asp-page="./Ranking" asp-route-site="@(Model.Site - 1)" class='matches-site'>‹ Prev</a>
     }
     @if (Model.Site >= 6) {
-        <span clkass='matches-site'>...</span>
+        <span class='matches-site'>...</span>
     }
     @{
         for (int j = Model.Site - 4; j < Model.Site; j++) {
             if (j <= 0) {
                 continue;
             }
-            <a href='/Ranking/@j' class='matches-site'>@j</a>
+            <a asp-page="./Ranking" asp-route-site="@j"  class='matches-site'>@j</a>
         }
     }
     <span class='matches-site matches-site-current'>@Model.Site</span>
@@ -100,15 +100,15 @@
             if (j >= Model.PageCount - 1) {
                 continue;
             }
-            <a href='/Ranking/@j' class='matches-site'>@j</a>
+            <a asp-page="./Ranking" asp-route-site="@j"  class='matches-site'>@j</a>
         }
     }
     @if (Model.Site < Model.PageCount - 4) {
-        <span clkass='matches-site'>...</span>
+        <span class='matches-site'>...</span>
     }
     @if (Model.Site < Model.PageCount) {
-        <a href="/Ranking/@(Model.Site + 1)" class='matches-site'>Next ›</a>
-        <a href="/Ranking/@(Model.PageCount)" class='matches-site'>Last »</a>
+        <a asp-page="./Ranking" asp-route-site="@(Model.Site + 1)"  class='matches-site'>Next ›</a>
+        <a asp-page="./Ranking" asp-route-site="@(Model.PageCount)"  class='matches-site'>Last »</a>
     }
 </p>
 
