@@ -23,9 +23,9 @@ namespace LegionTDServerReborn.Pages
             _db = db;
         }
 
-        public async Task OnGetAsync(bool success)
+        public void OnGet(bool success)
         {
-                SuccessfullySubmitted = success;
+            SuccessfullySubmitted = success;
         }
 
         public async Task<ActionResult> OnPostAsync() {

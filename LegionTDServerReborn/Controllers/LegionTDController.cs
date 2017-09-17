@@ -102,7 +102,6 @@ namespace LegionTDServerReborn.Controllers
                     return await UpdatePlayerProfiles();
                 case GetMethods.UpdateUnitStatistics:
                     return await UpdateUnitStatistics();
-                    break;
                 default:
                     break;
             }

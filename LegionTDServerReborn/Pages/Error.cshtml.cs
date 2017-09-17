@@ -13,7 +13,7 @@ namespace LegionTDServerReborn.Pages
 
         public bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
 
-        public async Task OnGetAsync()
+        public void OnGet()
         {
             RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
         }

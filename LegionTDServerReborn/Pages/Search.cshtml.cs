@@ -40,10 +40,11 @@ namespace LegionTDServerReborn.Pages
             } else {
                 id = -1;
             }
-            Players = await _db.Players.Where(p => p.Avatar != null)
+            Players = await _db.Players
                 .Where(p => p.SteamId == id || 
                     p.ProfileUrl == SearchTerm || 
                     (p.PersonaName.Contains(SearchTerm) && p.PersonaName.Length <= 4*SearchTerm.Length))
+                .OrderBy(p => p.PersonaName.Length)
                 .Take(50)
                 .ToListAsync();
             Builders = await _db.Builders.Where(b => b.Public && b.DisplayName.Contains(searchTerm) && b.DisplayName.Length <= 3*searchTerm.Length).ToListAsync();

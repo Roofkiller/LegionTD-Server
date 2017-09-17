@@ -47,10 +47,11 @@ namespace LegionTDServerReborn.Pages
             PlayerId = playerId;
             Site = site ?? 1;
             if (PlayerId != -1) {
-                Player = await _steamApi.GetPlayerInformation(PlayerId, q => q.IgnoreQueryFilters()
-                                    .Include(p => p.Matches)
-                                    .ThenInclude(m => m.Match)
-                                    .Include(p => p.Rankings));
+                Player = await _db.Players.IgnoreQueryFilters()
+                    .Include(p => p.Matches)
+                    .ThenInclude(m => m.Match)
+                    .Include(p => p.Rankings)
+                    .FirstOrDefaultAsync(p => p.SteamId == PlayerId);
                 if (Player == null) {
                     PlayerId = -1;
                     return;

@@ -49,7 +49,7 @@
     if (Model.Players.Count > 0) {
         <div class="row">
             <h3>Players</h3>
-            @foreach(var p in Model.Players) {
+            @foreach(var p in Model.Players.Where(p => p.Avatar != null)) {
                 @Html.Partial("_PartialSearchResult", SearchResult.FromPlayer(p))
             }
         </div>

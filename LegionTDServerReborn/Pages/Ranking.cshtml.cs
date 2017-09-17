@@ -51,7 +51,8 @@ namespace LegionTDServerReborn.Pages
                 .OrderBy(r => r.Position)
                 .ToList();
 
-            PlayerCount = await _db.Rankings.MaxAsync(r => r.Position);
+
+            PlayerCount = (await _db.Rankings.OrderByDescending(r => r.Position).FirstAsync()).Position;
 
             Players = Ranking.Select(r => r.Player).ToList();
         }
