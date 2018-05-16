@@ -31,6 +31,7 @@ namespace LegionTDServerReborn.Controllers
     [Route("api/[controller]")]
     public class LegionTdController : Controller
     {
+        public static bool _checkIp = true;
         private readonly IMemoryCache _cache;
         private LegionTdContext _db;
         private SteamApi _steamApi;
@@ -62,6 +63,7 @@ namespace LegionTDServerReborn.Controllers
             public const string UpdateRanking = "update_ranking";
             public const string UpdateUnitStatistics = "update_units";
             public const string UpdatePlayerProfiles = "update_players";
+            public const string CheckIp = "check_ip";
         }
 
         private static readonly Dictionary<string, RankingTypes> RankingTypeDict = new Dictionary<string, RankingTypes>
@@ -77,11 +79,13 @@ namespace LegionTDServerReborn.Controllers
 
         [HttpGet]
         public async Task<ActionResult> Get(string method, long? steamId, string rankingType, int? from, int? to,
-            bool ascending, string steamIds, int? matchId)
+            bool ascending, string steamIds, int? matchId, bool ipCheck)
         {
             var rType = !string.IsNullOrEmpty(rankingType) && RankingTypeDict.ContainsKey(rankingType) ? RankingTypeDict[rankingType] : RankingTypes.Invalid;
             switch (method)
             {
+                case GetMethods.CheckIp:
+                    return await SetIpCheck(ipCheck);
                 case GetMethods.UpdateRanking:
                     return await UpdateRankings();
                 case GetMethods.UpdateFractionStatistics:
@@ -106,6 +110,14 @@ namespace LegionTDServerReborn.Controllers
                     break;
             }
             return Json(new InvalidRequestFailure());
+        }
+
+        public async Task<ActionResult> SetIpCheck(bool value) {
+            if (!await CheckIp()) {
+                return Json(new NoPermissionFailure());
+            }
+            _checkIp = value;
+            return Json("Turned ip check " + (value ? "on" : "off"));
         }
 
         public async Task<ActionResult> GetMatchInfo(int? matchId) {
@@ -401,6 +413,9 @@ namespace LegionTDServerReborn.Controllers
         }
 
         private async Task<bool> CheckIp() {
+            if (!_checkIp) {
+                return true;
+            }
             var ipAddress = Request.HttpContext.Connection.RemoteIpAddress;
             var ranges = await GetDotaIpRanges();
             foreach(var range in ranges) {
@@ -425,11 +440,13 @@ namespace LegionTDServerReborn.Controllers
                 string content = reader.ReadToEnd();
                 var json = JObject.Parse(content);
                 var datacenters = json["data_centers"] as JObject;
-                foreach(var datacenter in datacenters) {
-                    var addressRanges = datacenter.Value["address_ranges"] as JArray;
-                    if (addressRanges != null) {
-                        foreach (var addressRange in addressRanges) {
-                            result.Add(IpAddressRange.Parse((string)addressRange));
+                if (datacenters != null) {
+                    foreach(var datacenter in datacenters) {
+                        var addressRanges = datacenter.Value["address_ranges"] as JArray;
+                        if (addressRanges != null) {
+                            foreach (var addressRange in addressRanges) {
+                                result.Add(IpAddressRange.Parse((string)addressRange));
+                            }
                         }
                     }
                 }
