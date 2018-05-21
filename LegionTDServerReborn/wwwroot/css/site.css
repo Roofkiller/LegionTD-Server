@@ -165,3 +165,26 @@ a.matches-site{
     max-height: 100%;
     flex: none;
 }
+
+.plt-wrapper {
+    margin-top: 8px;
+}
+
+.builder-stats {
+    margin-top: 8px;
+}
+
+.builder-plot {
+    padding: 0px;
+    margin: 0px;
+    height: 250px;
+    width: 100%;
+}
+
+#daily_player_plot {
+    height: 450px;
+}
+
+#player_rating_plot {
+    height: 350px;
+}

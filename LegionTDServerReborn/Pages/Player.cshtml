@@ -45,6 +45,10 @@
         </div>
     </div>
 
+    <div class="row plt-wrapper">
+        <div id="player_rating_plot"></div>
+    </div>
+
     <h3>Matches</h3>
 
     @Html.Partial("_PartialSiteViewNavigator", Model)
@@ -112,6 +116,55 @@
             $(".clickable-row").click(function() {
                     window.location = $(this).data("href");
                 });
+        });
+    </script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script>
+        var steamId = '@Model.Player.SteamId';
+        var rating = '@Model.Player.Rating';
+        $.ajax({
+            url: '/api/legiontd',
+            type: 'get',
+            data: {method : 'match_history', steamId : steamId},
+            success: function(data) {
+                var dates = data.map(d => new Date(Date.parse(d.data.date)));
+                dates = [... new Set(dates.map(d => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()))];
+                dates.sort()
+                var ratings = [... new Array(dates.length)].map(x => 0);
+                data.forEach(function(d)
+                {
+                    var date = new Date(Date.parse(d.data.date));
+                    date = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+                    var ind = dates.indexOf(date);
+                    ratings[ind] += d.data.ratingChange;
+                });
+                var realRatings = new Array(ratings.length);
+                for (var i=ratings.length - 1; i>=0; i--) {
+                    var change = 0;
+                    for (var j=i; j<ratings.length; j++) {
+                        change += ratings[j];
+                    }
+                    realRatings[i] = rating - change;
+                }
+                dates = dates.map(d => new Date(d))
+                var trace = {
+                    x : dates,
+                    y : realRatings,
+                    type : 'lines',
+                    displayModeBar : false
+                };
+                var layout = {
+                    title: 'Rating',
+                    showlegend: false,
+                    margin: {
+                        l: 32,
+                        r: 0,
+                        b: 32,
+                        t: 50
+                    }
+                };
+                Plotly.newPlot('player_rating_plot', [trace], layout, {displayModeBar : false});
+            }
         });
     </script>
 }

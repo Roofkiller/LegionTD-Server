@@ -34,6 +34,15 @@
     </div>
 </div>
 
+<div class="row builder-stats">
+    <div class="col-md-6 col-sm-6 col-xs-6">
+        <div id='win_rate_plot' class="builder-plot"></div>
+    </div>
+    <div class="col-md-6 col-sm-6 col-xs-6">
+        <div id='pick_rate_plot' class="builder-plot"></div>
+    </div>
+</div>
+
 <h3>Units</h3>
 <div class='table-responsive'>
     <table class='table table-striped table-hover'>
@@ -143,6 +152,65 @@
             $(".clickable-row").click(function() {
                     window.location = $(this).data("href");
                 });
+        });
+    </script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script>
+        var fraction = '@Model.Builder.Name';
+        $.ajax({
+            url: '/api/legiontd',
+            type: 'get',
+            data: {method : 'fraction_data_history', numDays : 92, fraction : fraction},
+            success: function(data) {
+                var dates = data.map(d => new Date(Date.parse(d.timeStamp)));
+                dates = dates.map(d => new Date(d.getFullYear(), d.getMonth(), d.getDate()));
+                var winRates = data.map(d => d.winRate);
+                var winRateTrace = {
+                    x : dates,
+                    y : winRates,
+                    type : 'lines',
+                    displayModeBar : false
+                };
+                var layout = {
+                    title: 'Win Rate',
+                    showlegend: false,
+                    yaxis : {
+                        range : [0, 1]
+                    },
+                    margin: {
+                        l: 32,
+                        r: 0,
+                        b: 32,
+                        t: 50
+                    }
+                };
+                Plotly.newPlot('win_rate_plot', [winRateTrace], layout, {displayModeBar : false});
+                var pickRates = data.map(d => d.pickRate)
+                var maxPR = Math.ceil(Math.max(...pickRates))
+                var pickRateTrace = {
+                    x : dates,
+                    y : pickRates,
+                    type : 'lines',
+                    displayModeBar : false,
+                    line: {
+                        color: 'rgb(191, 120, 48)'
+                    }
+                };
+                var layout = {
+                    title: 'Pick Rate',
+                    showlegend: false,
+                    yaxis : {
+                        range : [0, maxPR]
+                    },
+                    margin: {
+                        l: 32,
+                        r: 0,
+                        b: 32,
+                        t: 50
+                    }
+                };
+                Plotly.newPlot('pick_rate_plot', [pickRateTrace], layout, {displayModeBar : false});
+            }
         });
     </script>
 }

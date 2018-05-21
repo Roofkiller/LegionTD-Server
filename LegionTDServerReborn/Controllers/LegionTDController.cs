@@ -64,6 +64,8 @@ namespace LegionTDServerReborn.Controllers
             public const string UpdateUnitStatistics = "update_units";
             public const string UpdatePlayerProfiles = "update_players";
             public const string CheckIp = "check_ip";
+            public const string MatchesPerDay = "matches_per_day";
+            public const string FractionDataHistory = "fraction_data_history";
         }
 
         private static readonly Dictionary<string, RankingTypes> RankingTypeDict = new Dictionary<string, RankingTypes>
@@ -79,7 +81,7 @@ namespace LegionTDServerReborn.Controllers
 
         [HttpGet]
         public async Task<ActionResult> Get(string method, long? steamId, string rankingType, int? from, int? to,
-            bool ascending, string steamIds, int? matchId, bool ipCheck)
+            bool ascending, string steamIds, int? matchId, bool ipCheck, int? numDays, string fraction)
         {
             var rType = !string.IsNullOrEmpty(rankingType) && RankingTypeDict.ContainsKey(rankingType) ? RankingTypeDict[rankingType] : RankingTypes.Invalid;
             switch (method)
@@ -106,6 +108,10 @@ namespace LegionTDServerReborn.Controllers
                     return await UpdatePlayerProfiles();
                 case GetMethods.UpdateUnitStatistics:
                     return await UpdateUnitStatistics();
+                case GetMethods.MatchesPerDay:
+                    return await GetMatchesPerDay(numDays);
+                case GetMethods.FractionDataHistory:
+                    return await FractionDataHistory(numDays, fraction);
                 default:
                     break;
             }
@@ -118,6 +124,26 @@ namespace LegionTDServerReborn.Controllers
             }
             _checkIp = value;
             return Json("Turned ip check " + (value ? "on" : "off"));
+        }
+
+        public async Task<ActionResult> FractionDataHistory(int? numDays, string fraction) {
+            var now = DateTime.Now;
+            var dt = new DateTime(now.Year, now.Month, now.Day, 23, 59, 59);
+            var nd = numDays ?? 31; 
+            dt = dt.AddDays(-nd);
+            return Json(await _db.FractionStatistics
+                                    .Where(s => s.TimeStamp > dt && s.FractionName == fraction)
+                                    .ToListAsync());
+        }
+
+        public async Task<ActionResult> GetMatchesPerDay(int? numDays) {
+            var now = DateTime.Now;
+            var dt = new DateTime(now.Year, now.Month, now.Day, 23, 59, 59);
+            var nd = numDays ?? 31; 
+            dt = dt.AddDays(-nd);
+            return Json(await _db.Matches.Where(m => m.Date > dt)
+                                .GroupBy(m => new {m.Date.Year, m.Date.Month, m.Date.Day})
+                                .Select(g => new {name = g.Key, count = g.Count()}).ToListAsync());
         }
 
         public async Task<ActionResult> GetMatchInfo(int? matchId) {

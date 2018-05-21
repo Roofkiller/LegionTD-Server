@@ -16,13 +16,15 @@
         dictionary["Monthly Players"] = $"{Model.MonthlyPlayers}";
         dictionary["Daily Matches"] = $"{Model.DailyMatches}";
         @foreach (var pair in dictionary) {
-            <div class='col-md-3 col-sm-3 col-xs-6 match-info'>
+            <div class='col-md-6 col-sm-6 col-xs-6 match-info'>
                 <p class='match-info-title text-center'>@pair.Key</p>
                 <p class='match-info-value text-center'>@Html.Raw(pair.Value)</p>
             </div>
         }
     }
 </div>
+
+<div id='daily_player_plot'></div>
 
 <a href='https://github.com/n-gao/LegionTD-Reborn'>
     <img src='~/images/GitHub-Mark-64px.png' alt='GitHub Logo'>
@@ -31,3 +33,30 @@
 <a href='https://steamcommunity.com/sharedfiles/filedetails/?id=541930328'>
     <img src='~/images/steam-icon.png' alt='Steam Logo'>
 </a>
+
+@section scripts {
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script>
+        $.ajax({
+            url: '/api/legiontd',
+            type: 'get',
+            data: {method : 'matches_per_day', numDays : 92},
+            success: function(data) {
+                console.log(data);
+                x = [];
+                var trace = {
+                    x : data.map(v => new Date(v.name.year, v.name.month, v.name.day)),
+                    y : data.map(v => v.count),
+                    type : 'scatter',
+                    displayModeBar : false
+                };
+                var layout = {
+                    title: 'Daily Matches',
+                    showlegend: false
+                };
+                Plotly.newPlot('daily_player_plot', [trace], layout, {displayModeBar : false});
+            }
+        });
+    </script>
+}
+
