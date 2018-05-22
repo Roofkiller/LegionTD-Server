@@ -35,10 +35,10 @@
 </div>
 
 <div class="row builder-stats">
-    <div class="col-md-6 col-sm-6 col-xs-6">
+    <div class="col-md-6 col-sm-12 col-xs-12">
         <div id='win_rate_plot' class="builder-plot"></div>
     </div>
-    <div class="col-md-6 col-sm-6 col-xs-6">
+    <div class="col-md-6 col-sm-12 col-xs-12">
         <div id='pick_rate_plot' class="builder-plot"></div>
     </div>
 </div>
@@ -164,7 +164,7 @@
             success: function(data) {
                 var dates = data.map(d => new Date(Date.parse(d.timeStamp)));
                 dates = dates.map(d => new Date(d.getFullYear(), d.getMonth(), d.getDate()));
-                var winRates = data.map(d => d.winRate);
+                var winRates = data.map(d => d.winRate != "NaN" ? d.winRate : 0);
                 var winRateTrace = {
                     x : dates,
                     y : winRates,

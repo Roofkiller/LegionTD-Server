@@ -45,18 +45,23 @@
                 console.log(data);
                 x = [];
                 var trace = {
-                    x : data.map(v => new Date(v.name.year, v.name.month, v.name.day)),
+                    x : data.map(v => new Date(v.name.year, v.name.month - 1, v.name.day)),
                     y : data.map(v => v.count),
                     type : 'scatter',
                     displayModeBar : false
                 };
                 var layout = {
                     title: 'Daily Matches',
-                    showlegend: false
+                    showlegend: false,
+                    margin: {
+                        l: 32,
+                        r: 0,
+                        b: 32,
+                        t: 50
+                    }
                 };
                 Plotly.newPlot('daily_player_plot', [trace], layout, {displayModeBar : false});
             }
         });
     </script>
 }
-
