@@ -91,7 +91,7 @@
                         @{
                             var indent = item.GetLevel();
                         }
-                        <span style='padding-left: @(indent + "em")'>@item.DisplayName</span>
+                        <span style='padding-left: @(indent - 1 + "em")'>@item.DisplayName</span>
                     </td>
                     <td>
                         @item.CurrentStatistic.BuildsPerGame.ToString("F")
@@ -134,7 +134,9 @@
                     toPrint.Push(unit);
                     while (toPrint.Count > 0) {
                         var current = toPrint.Pop();
-                        @printUnit(current)
+                        if (current.GetLevel() > 0) {
+                            @printUnit(current)
+                        }
                         foreach(var toAdd in current.GetChildren()) {
                             toPrint.Push(toAdd);
                         }
