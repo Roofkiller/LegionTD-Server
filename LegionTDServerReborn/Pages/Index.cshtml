@@ -8,21 +8,29 @@
     ViewData["Title"] = "Home page";
 }
 
-<h1>Welcome to Legion TD Reborn</h1>
-
-<div class='row'>
-    @{
-        var dictionary = new Dictionary<string, string>();
-        dictionary["Monthly Players"] = $"{Model.MonthlyPlayers}";
-        dictionary["Daily Matches"] = $"{Model.DailyMatches}";
-        @foreach (var pair in dictionary) {
-            <div class='col-md-6 col-sm-6 col-xs-6 match-info'>
-                <p class='match-info-title text-center'>@pair.Key</p>
-                <p class='match-info-value text-center'>@Html.Raw(pair.Value)</p>
+@section SpecialHeader{
+    <div class="index-header">
+        <div id="particles"></div>
+        <div class="container body-content">
+            <h1>Legion TD Reborn</h1>
+            <a class="btn play-btn" href="https://steamcommunity.com/sharedfiles/filedetails/?id=541930328">Play for free</a>
+            <div class='row'>
+                @{
+                    var dictionary = new Dictionary<string, string>();
+                    dictionary["Monthly Players"] = $"{Model.MonthlyPlayers}";
+                    dictionary["Daily Matches"] = $"{Model.DailyMatches}";
+                    @foreach (var pair in dictionary) {
+                        <div class='col-md-6 col-sm-6 col-xs-6 match-info'>
+                            <p class='match-info-title text-center'>@pair.Key</p>
+                            <p class='match-info-value text-center'>@Html.Raw(pair.Value)</p>
+                        </div>
+                    }
+                }
             </div>
-        }
-    }
-</div>
+        </div>
+    </div>
+}
+    
 
 <div id='daily_player_plot'></div>
 
@@ -35,14 +43,13 @@
 </a>
 
 @section scripts {
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-    <script>
+    <script defer src="https://cdn.plot.ly/plotly-latest.min.js" type="text/javascript"></script>
+    <script defer type="text/javascript">
         $.ajax({
             url: '/api/legiontd',
             type: 'get',
             data: {method : 'matches_per_day', numDays : 92},
             success: function(data) {
-                console.log(data);
                 x = [];
                 var trace = {
                     x : data.map(v => new Date(v.name.year, v.name.month - 1, v.name.day)),
@@ -62,6 +69,12 @@
                 };
                 Plotly.newPlot('daily_player_plot', [trace], layout, {displayModeBar : false});
             }
+        });
+    </script>
+    <script src="~/lib/particlesjs/particles.min.js" type="text/javascript"></script>
+    <script type="text/javascript">
+        $.getJSON("/js/particles.json", function(settings) {
+            particlesJS("particles", settings);
         });
     </script>
 }

@@ -7,7 +7,7 @@ body {
 /* Set some basic padding to keep content from hitting the edges */
 .body-content {
     padding-left: 15px;
-    padding-right: 15px;
+    padding-right: 15px; 
 }
 
 /* Carousel */
@@ -50,8 +50,9 @@ body {
 .match-header {
     margin-top: 16px;
     padding: 8px;
-    background-color: hsl(0, 0%, 98%) !important;
-    box-shadow: 0px 0px 10px hsl(0, 0%, 80%);
+    /* background-color: hsl(0, 0%, 98%) !important; */
+    box-shadow: 0px 4px 16px rgba(0, 0, 0, 0.16);
+    margin-bottom: 16px;
 }
 
 .match-title {
@@ -183,8 +184,87 @@ a.matches-site{
 
 #daily_player_plot {
     height: 400px;
+    margin-bottom: 32px;
 }
 
 #player_rating_plot {
     height: 350px;
+}
+
+.index-header {
+    position: relative;
+    width: 100%;
+    color: #fff;
+    padding: 16px;
+}
+
+.index-header h1 {
+    margin-bottom: 32px;
+}
+
+#particles {
+    background-color: rgb(184, 43, 43);
+    position: absolute;
+    left: 0;
+    right: 0;
+    z-index: -100;
+    top: 0;
+    bottom: 0;
+}
+
+.logo {
+    width: 200px;
+}
+
+.play-btn {
+    border-radius: 0px !important;
+    border: 1px solid #fff;
+    color: #fff;
+    transition: all 0.1s;
+    font-size: 1.5em;
+    min-width: 250px;
+    text-transform: uppercase;
+    margin-bottom: 32px;
+}
+
+.play-btn:hover {
+    border: 1px solid rgba(0, 0, 0, 0);
+    color: #333;
+    background-color: #fff;
+}
+
+.builder {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.16);
+    margin-top: 16px;
+    margin-bottom: 16px;
+    transition: all 0.1s;
+    transform-origin: center center;
+    transform-style: preserve-3d;
+}
+
+.builder h3 {
+    display: inline;
+    margin-left: 8px;
+}
+
+.builder:hover {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.16);
+    transform: scale(1.01, 1.01);
+}
+
+.builder-img {
+    width: 100%;
+}
+
+.builder-content {
+    padding: 8px;
+}
+
+.builder-stat-table {
+    margin-top: 8px;
+    width: 100%;
+}
+
+.builder-stat-table tr td {
+    width: 50%;
 }

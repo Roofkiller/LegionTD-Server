@@ -9,7 +9,40 @@
 
 <h2>Builders</h2>
 
-<div class='table-responsive'>
+<div class="row">
+    @{
+        foreach(var builder in Model.Builders) {
+            <div class="col-md-3 col-sm-4">
+                <div class="builder clickable-row" data-href="/Builders/@builder.FractionName">
+                    <img src='/images/builder/big/@(builder.FractionName + ".jpg")' class="builder-img">
+                    <div class="builder-content">
+                        <h3>@builder.DisplayName</h3>
+                        <table class="builder-stat-table">
+                            <tr>
+                                <td>
+                                    Pick Rate
+                                </td>
+                                <td>
+                                    @($"{builder.Fraction.CurrentStatistic.PickRate * 100:0.00}%")
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    Win Rate
+                                </td>
+                                <td>
+                                    @($"{builder.Fraction.CurrentStatistic.WinRate * 100:0.00}%")
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+<!-- <div class='table-responsive'>
     <table class='table table-striped table-hover'>
         <thead>
             <tr>
@@ -43,7 +76,7 @@
             }
         </tbody>
     </table>
-</div>
+</div> -->
 
 @section scripts {
     <script>
