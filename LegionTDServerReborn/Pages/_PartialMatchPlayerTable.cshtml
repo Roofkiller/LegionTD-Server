@@ -40,10 +40,10 @@
                     foreach(var player in Model) {
                         <tr>
                             <td>
-                                @Html.Partial("_PartialPlayer", player.Player)
+                                @await Html.PartialAsync("_PartialPlayer", player.Player)
                             </td>
                             <td class='text-center'>
-                                @Html.Partial("_PartialFractionIcon", player.FractionName)
+                                @await Html.PartialAsync("_PartialFractionIcon", player.FractionName)
                             </td>
                             <td class='text-center'>
                                 @if (player.Abandoned) {

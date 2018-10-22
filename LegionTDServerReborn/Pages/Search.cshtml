@@ -27,14 +27,14 @@
     if (Model.Match != null) {
         <div class="row">
             <h3>Match</h3>
-            @Html.Partial("_PartialSearchResult", SearchResult.FromMatch(Model.Match))
+            @await Html.PartialAsync("_PartialSearchResult", SearchResult.FromMatch(Model.Match))
         </div>
     }
     if (Model.Builders.Count > 0) {
         <div class="row">
             <h3>Builder</h3>
             @foreach(var b in Model.Builders) {
-                @Html.Partial("_PartialSearchResult", SearchResult.FromBuilder(b))
+                @await Html.PartialAsync("_PartialSearchResult", SearchResult.FromBuilder(b))
             }
         </div>
     }
@@ -42,7 +42,7 @@
         <div class="row">
             <h3>Units</h3>
             @foreach(var u in Model.Units) {
-                @Html.Partial("_PartialSearchResult", SearchResult.FromUnit(u))
+                @await Html.PartialAsync("_PartialSearchResult", SearchResult.FromUnit(u))
             }
         </div>
     }
@@ -50,7 +50,7 @@
         <div class="row">
             <h3>Players</h3>
             @foreach(var p in Model.Players.Where(p => p.Avatar != null)) {
-                @Html.Partial("_PartialSearchResult", SearchResult.FromPlayer(p))
+                @await Html.PartialAsync("_PartialSearchResult", SearchResult.FromPlayer(p))
             }
         </div>
     }
