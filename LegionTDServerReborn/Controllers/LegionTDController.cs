@@ -416,11 +416,16 @@ namespace LegionTDServerReborn.Controllers
             public const string UpdateBuilders = "update_heroes";
         }
 
+        private bool ValidateSecretKey(string secretKey) {
+            Console.WriteLine($"Received secret key: {secretKey}");
+            return secretKey == this._dedicatedServerKey;
+        }
+
         [HttpPost]
         public async Task<ActionResult> Post(string method, int? winner, string playerData, string data, float duration,
             int lastWave, string duelData, long? steamId, string secret_key)
         {
-            if (secret_key != this._dedicatedServerKey && !await CheckIp()) {
+            if (!ValidateSecretKey(secret_key) && !await CheckIp()) {
                 return Json(new NoPermissionFailure());
             }
             LoggingUtil.Log($"Called method {method}");
