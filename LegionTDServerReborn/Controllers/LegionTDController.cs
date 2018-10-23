@@ -2,6 +2,7 @@
 using LegionTDServerReborn.Responses;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -35,6 +36,7 @@ namespace LegionTDServerReborn.Controllers
         private LegionTdContext _db;
         private SteamApi _steamApi;
         private const string PlayerCountKey = "player_count";
+        private readonly string _dedicatedServerKey;
 
 
         protected override void Dispose(bool disposing)
@@ -42,11 +44,12 @@ namespace LegionTDServerReborn.Controllers
             base.Dispose(disposing);
         }
 
-        public LegionTdController(LegionTdContext context, SteamApi steamApi, IMemoryCache cache)
+        public LegionTdController(LegionTdContext context, SteamApi steamApi, IMemoryCache cache, IConfiguration configuration)
         {
             _db = context;
             _cache = cache;
             _steamApi = steamApi;
+            _dedicatedServerKey = configuration["dedicatedServerKey"];
         }
 
         private static class GetMethods
@@ -415,9 +418,9 @@ namespace LegionTDServerReborn.Controllers
 
         [HttpPost]
         public async Task<ActionResult> Post(string method, int? winner, string playerData, string data, float duration,
-            int lastWave, string duelData, long? steamId)
+            int lastWave, string duelData, long? steamId, string secret_key)
         {
-            if (!await CheckIp()) {
+            if (secret_key != this._dedicatedServerKey && !await CheckIp()) {
                 return Json(new NoPermissionFailure());
             }
             LoggingUtil.Log($"Called method {method}");
