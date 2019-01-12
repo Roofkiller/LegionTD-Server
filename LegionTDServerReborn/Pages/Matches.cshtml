@@ -10,7 +10,7 @@
 
 <h2>@ViewData["Title"]</h2>
 
-@Html.Partial("_PartialSiteViewNavigator", Model)
+@await Html.PartialAsync("_PartialSiteViewNavigator", Model)
 <div class='table-responsive'>
     <table class="table table-responsive table-hover table-striped">
         <col width='10%'><col width='20%'><col width='10%'><col width='10%'><col width='10%'><col width='20%'><col width='20%'>
@@ -50,12 +50,12 @@
                         <td>@Html.TeamToHtml(match.Winner)</td>
                         <td>
                             @foreach(var player in match.PlayerData.Where(p => p.Team == 2)) {
-                                @Html.Partial("_PartialFractionIcon", player.FractionName)
+                                @await Html.PartialAsync("_PartialFractionIcon", player.FractionName)
                             }
                         </td>
                         <td>
                             @foreach(var player in match.PlayerData.Where(p => p.Team == 3)) {
-                                @Html.Partial("_PartialFractionIcon", player.FractionName)
+                                @await Html.PartialAsync("_PartialFractionIcon", player.FractionName)
                             }
                         </td>
                     </tr>;
@@ -67,7 +67,7 @@
 <p class='text-right matches-indicator'>
     @((Model.Site-1) * MatchesModel.MatchesPerSite + 1) - @(Model.Site * MatchesModel.MatchesPerSite) of @Model.MatchCount
 </p>
-@Html.Partial("_PartialSiteViewNavigator", Model)
+@await Html.PartialAsync("_PartialSiteViewNavigator", Model)
 
 @section scripts {
     <script>

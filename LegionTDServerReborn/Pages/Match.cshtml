@@ -43,7 +43,7 @@
             }
         </h3>
 
-        @Html.Partial("_PartialMatchPlayerTable", Model.Match.PlayerData.Where(p => p.Team == team))
+        @await Html.PartialAsync("_PartialMatchPlayerTable", Model.Match.PlayerData.Where(p => p.Team == team))
     }
 }
 
