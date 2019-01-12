@@ -44,37 +44,37 @@
 
 @section scripts {
     <script defer src="https://cdn.plot.ly/plotly-latest.min.js" type="text/javascript"></script>
-    <script defer type="text/javascript">
-        $.ajax({
-            url: '/api/legiontd',
-            type: 'get',
-            data: {method : 'matches_per_day', numDays : 92},
-            success: function(data) {
-                x = [];
-                var trace = {
-                    x : data.map(v => new Date(v.name.year, v.name.month - 1, v.name.day)),
-                    y : data.map(v => v.count),
-                    type : 'scatter',
-                    displayModeBar : false
-                };
-                var layout = {
-                    title: 'Daily Matches',
-                    showlegend: false,
-                    margin: {
-                        l: 32,
-                        r: 0,
-                        b: 32,
-                        t: 50
-                    }
-                };
-                Plotly.newPlot('daily_player_plot', [trace], layout, {displayModeBar : false});
-            }
-        });
-    </script>
-    <script src="~/lib/particlesjs/particles.min.js" type="text/javascript"></script>
+    <script defer src="~/lib/particlesjs/particles.min.js" type="text/javascript"></script>
     <script type="text/javascript">
-        $.getJSON("/js/particles.json", function(settings) {
-            particlesJS("particles", settings);
-        });
+        window.onload = function () {
+            $.getJSON("/js/particles.json", function(settings) {
+                particlesJS("particles", settings);
+            });
+            $.ajax({
+                url: '/api/legiontd',
+                type: 'get',
+                data: {method : 'matches_per_day', numDays : 92},
+                success: function(data) {
+                    x = [];
+                    var trace = {
+                        x : data.map(v => new Date(v.name.year, v.name.month - 1, v.name.day)),
+                        y : data.map(v => v.count),
+                        type : 'scatter',
+                        displayModeBar : false
+                    };
+                    var layout = {
+                        title: 'Daily Matches',
+                        showlegend: false,
+                        margin: {
+                            l: 32,
+                            r: 0,
+                            b: 32,
+                            t: 50
+                        }
+                    };
+                    Plotly.newPlot('daily_player_plot', [trace], layout, {displayModeBar : false});
+                }
+            });
+        }
     </script>
 }
