@@ -472,10 +472,10 @@ namespace LegionTDServerReborn.Controllers
 
         private async Task<bool> CheckIp()
         {
-            if (!_checkIp)
-            {
-                return true;
-            }
+            // if (!_checkIp)
+            // {
+            //     return true;
+            // }
             var ipAddress = Request.HttpContext.Connection.RemoteIpAddress;
             var ranges = await GetDotaIpRanges();
             foreach (var range in ranges)
