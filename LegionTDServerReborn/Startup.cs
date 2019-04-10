@@ -51,7 +51,8 @@ namespace LegionTDServerReborn
 
             services.AddMemoryCache();
             services.AddDbContext<LegionTdContext>(
-                options => options.UseMySql(Configuration.GetConnectionString("MySQLConnection")));
+                options => options.UseMySql(Configuration.GetConnectionString("MySQLConnection"), 
+                                            sqlServerOptions => sqlServerOptions.CommandTimeout(180)));
             services.Configure<GzipCompressionProviderOptions>(options => options.Level =
                 System.IO.Compression.CompressionLevel.Optimal);
             services.AddResponseCompression();
