@@ -126,7 +126,7 @@ namespace LegionTDServerReborn.Controllers
 
         public async Task<ActionResult> FractionDataHistory(int? numDays, string fraction)
         {
-            var now = DateTime.Now;
+            var now = DateTime.UtcNow;
             var dt = new DateTime(now.Year, now.Month, now.Day, 23, 59, 59);
             var nd = numDays ?? 31;
             dt = dt.AddDays(-nd);
@@ -137,7 +137,7 @@ namespace LegionTDServerReborn.Controllers
 
         public async Task<ActionResult> GetMatchesPerDay(int? numDays)
         {
-            var now = DateTime.Now;
+            var now = DateTime.UtcNow;
             var dt = new DateTime(now.Year, now.Month, now.Day, 23, 59, 59);
             var nd = numDays ?? 31;
             dt = dt.AddDays(-nd);
@@ -246,7 +246,7 @@ namespace LegionTDServerReborn.Controllers
             if (_cache.TryGetValue(PlayerCountKey, out int result))
                 return result;
             result = await _db.Players.CountAsync();
-            _cache.Set(PlayerCountKey, result, DateTimeOffset.Now.AddDays(1));
+            _cache.Set(PlayerCountKey, result, DateTimeOffset.UtcNow.AddDays(1));
             return result;
         }
 
@@ -285,7 +285,7 @@ namespace LegionTDServerReborn.Controllers
         private async Task UpdateRanking(Models.RankingTypes type, bool asc)
         {
             string key = type + "|" + asc;
-            _cache.Set(key, true, DateTimeOffset.Now.AddDays(1));
+            _cache.Set(key, true, DateTimeOffset.UtcNow.AddDays(1));
 
             await _db.Database.ExecuteSqlRawAsync($"DELETE FROM Rankings WHERE Type = {(int)type} AND Ascending = {(asc ? 1 : 0)}");
             Console.WriteLine($"Cleared Ranking for {type} {asc}");
@@ -349,7 +349,7 @@ namespace LegionTDServerReborn.Controllers
         {
             var unit = await GetOrCreateUnit(unitName);
             var timeStamp = DateTimeOffset.UtcNow;
-            var now = DateTime.Now;
+            var now = DateTime.UtcNow;
             var yesterday = now.AddDays(-1);
             var unitData = _db.PlayerUnitRelations
                 .Include(r => r.PlayerMatch)
@@ -401,7 +401,7 @@ namespace LegionTDServerReborn.Controllers
         private async Task UpdateFractionStatistic(string fractionName)
         {
             Fraction fraction = await GetOrCreateFraction(fractionName);
-            var timeStamp = DateTime.Now;
+            var timeStamp = DateTime.UtcNow;
             var yesterday = timeStamp.AddDays(-1);
             var wins = await _db.Fractions.Include(b => b.PlayedMatches).ThenInclude(m => m.Match)
                 .Where(f => f.Name == fractionName)
@@ -920,7 +920,7 @@ namespace LegionTDServerReborn.Controllers
                 Winner = winner,
                 Duration = duration,
                 LastWave = lastWave,
-                Date = DateTime.Now,
+                Date = DateTime.UtcNow,
                 IsTraining = true
             };
             _db.Matches.Add(match);

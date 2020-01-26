@@ -24,9 +24,9 @@ namespace LegionTDServerReborn.Pages
 
         public async Task OnGetAsync()
         {
-            var timeStamp = DateTime.Now.AddDays(-1);
+            var timeStamp = DateTime.UtcNow.AddDays(-1);
             DailyMatches = await _db.Matches.CountAsync(m => m.Date > timeStamp);
-            timeStamp = DateTime.Now.AddMonths(-1);
+            timeStamp = DateTime.UtcNow.AddMonths(-1);
             MonthlyPlayers = await _db.Matches.Include(m => m.PlayerData)
                 .Where(m => m.Date > timeStamp)
                 .SelectMany(m => m.PlayerData)
