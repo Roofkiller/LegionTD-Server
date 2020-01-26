@@ -10,16 +10,10 @@ using System;
 using System.Text;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.Common;
-using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
 using LegionTDServerReborn.Extensions;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
-using Microsoft.EntityFrameworkCore.Scaffolding.Internal;
-using MySql.Data.MySqlClient;
 using Match = LegionTDServerReborn.Models.Match;
 using LegionTDServerReborn.Utils;
 using LegionTDServerReborn.Services;
@@ -33,8 +27,8 @@ namespace LegionTDServerReborn.Controllers
     {
         public static bool _checkIp = true;
         private readonly IMemoryCache _cache;
-        private LegionTdContext _db;
-        private SteamApi _steamApi;
+        private readonly LegionTdContext _db;
+        private readonly SteamApi _steamApi;
         private const string PlayerCountKey = "player_count";
         private readonly string _dedicatedServerKey;
 
@@ -228,7 +222,13 @@ namespace LegionTDServerReborn.Controllers
                 values.Append($", {ids[i]}");
             }
             var sql = $"SELECT * FROM Players p WHERE SteamId IN ({values})";
-            var players = await query.FromSql(sql).ToListAsync();
+            var players = await _db.Players.FromSqlRaw(sql)
+                .Include(p => p.Matches)
+                .ThenInclude(m => m.Fraction)
+                .Include(p => p.Matches)
+                .ThenInclude(m => m.Match)
+                .AsNoTracking()
+                .ToListAsync();
             foreach (var rang in ranking)
             {
                 result.Add(new PlayerRankingResponse(players.First(p => p.SteamId == rang.PlayerId), rang.Position - 1));
@@ -287,14 +287,13 @@ namespace LegionTDServerReborn.Controllers
             string key = type + "|" + asc;
             _cache.Set(key, true, DateTimeOffset.Now.AddDays(1));
 
-            await _db.Database.ExecuteSqlCommandAsync($"DELETE FROM Rankings WHERE Type = {(int)type} AND Ascending = {(asc ? 1 : 0)}");
+            await _db.Database.ExecuteSqlRawAsync($"DELETE FROM Rankings WHERE Type = {(int)type} AND Ascending = {(asc ? 1 : 0)}");
             Console.WriteLine($"Cleared Ranking for {type} {asc}");
             string sql;
-            string sqlSelects = "";
             string sqlJoins = "JOIN Matches AS m \n" +
                                 "ON m.MatchId = pm.MatchId \n";
-            string sqlOrderBy = "";
             string sqlWheres = "WHERE m.IsTraining = FALSE \n";
+            string sqlSelects, sqlOrderBy;
             switch (type)
             {
                 case RankingTypes.EarnedTangos:
@@ -325,7 +324,7 @@ namespace LegionTDServerReborn.Controllers
                 sqlOrderBy +
                 ") AS pr, \n" +
                 "(SELECT @rownum := 0) AS r \n";
-            await _db.Database.ExecuteSqlCommandAsync(sql);
+            await _db.Database.ExecuteSqlRawAsync(sql);
             LoggingUtil.Log("Ranking has been updated.");
         }
 
@@ -335,11 +334,13 @@ namespace LegionTDServerReborn.Controllers
             {
                 return Json(new NoPermissionFailure());
             }
-            var units = await _db.Units.ToListAsync();
-            foreach (var unit in units)
+            var units = _db.Units.AsAsyncEnumerable();
+            var toWait = new List<Task>();
+            await foreach (var unit in units)
             {
-                await UpdateUnitStatistic(unit.Name);
+                toWait.Append(UpdateUnitStatistic(unit.Name));
             }
+            Task.WaitAll(toWait.ToArray());
             LoggingUtil.Log("Unit statistics have been updated.");
             return Json(new { success = true });
         }
@@ -387,8 +388,8 @@ namespace LegionTDServerReborn.Controllers
             {
                 return Json(new NoPermissionFailure());
             }
-            var fractions = await _db.Fractions.ToListAsync();
-            foreach (var fraction in fractions)
+            var fractions = _db.Fractions.AsAsyncEnumerable();
+            await foreach (var fraction in fractions)
             {
                 await UpdateFractionStatistic(fraction.Name);
             }
@@ -492,7 +493,7 @@ namespace LegionTDServerReborn.Controllers
 
         private async Task<List<IpAddressRange>> GetDotaIpRanges()
         {
-            List<IpAddressRange> result = null;
+            List<IpAddressRange> result;
             if (!_cache.TryGetValue("dota_ip_ranges", out result)) {
                 result = new List<IpAddressRange>();
                 WebRequest request = WebRequest.CreateHttp("http://media.steampowered.com/apps/sdr/network_config.json");
@@ -537,19 +538,12 @@ namespace LegionTDServerReborn.Controllers
             foreach (var pair in builderData)
             {
                 string builderName = pair.Key;
-                string fraction;
-                try
-                {
-                    fraction = pair.Value["LegionFraction"].Value<string>();
-                }
-                catch (Exception)
-                {
-                    fraction = "other";
-                }
+                string fraction = pair.Value.GetValueOrDefault("LegionFraction") ?? "other";
                 Builder builder = await GetOrCreateBuilder(builderName);
                 builder.Fraction = await GetOrCreateFraction(fraction);
                 builder.UpdateValues(pair.Value);
-                await _db.Database.ExecuteSqlCommandAsync($"DELETE FROM UnitAbilities WHERE UnitName = {builderName};");
+                _db.UnitAbilities.RemoveRange(_db.UnitAbilities.Where(a => a.UnitName == builderName));
+                //await _db.Database.ExecuteSqlRawAsync($"DELETE FROM UnitAbilities WHERE UnitName = {builderName};");
                 for (int i = 1; i <= 24; i++)
                 {
                     string abilityName = pair.Value.GetValueOrDefault($"Ability{i}");
@@ -583,19 +577,12 @@ namespace LegionTDServerReborn.Controllers
             foreach (var pair in unitData)
             {
                 string unitName = pair.Key;
-                string fraction;
-                try
-                {
-                    fraction = pair.Value["LegionFraction"].Value<string>();
-                }
-                catch (Exception)
-                {
-                    fraction = "other";
-                }
+                string fraction = pair.Value.GetValueOrDefault("LegionFraction") ?? "other";
                 Unit unit = await GetOrCreateUnit(unitName);
                 unit.Fraction = await GetOrCreateFraction(fraction);
                 unit.UpdateValues(pair.Value);
-                await _db.Database.ExecuteSqlCommandAsync($"DELETE FROM UnitAbilities WHERE UnitName = {unitName};");
+                _db.UnitAbilities.RemoveRange(_db.UnitAbilities.Where(a => a.UnitName == unitName));
+                //await _db.Database.ExecuteSqlRawAsync($"DELETE FROM UnitAbilities WHERE UnitName = {unitName};");
                 for (int i = 1; i <= 24; i++)
                 {
                     string abilityName = pair.Value.GetValueOrDefault($"Ability{i}");
