@@ -17,7 +17,7 @@ namespace LegionTDServerReborn.Extensions
         }
 
         public static string ToRelativeText(this DateTime date) {
-            var now = DateTime.Now;
+            var now = DateTimeOffset.UtcNow.UtcDateTime;
             var span = now - date;
             if (span.TotalMinutes < 0) {
                 return "less than a minute ago";
