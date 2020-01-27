@@ -689,23 +689,29 @@ namespace LegionTDServerReborn.Controllers
                 LoggingUtil.Log($"Adding duels to #{match.MatchId}");
                 if (!string.IsNullOrWhiteSpace(duelDataString))
                 {
-                    var duelData = JObject.Parse(duelDataString);
-                    if (duelData != null)
+                    try
                     {
-                        foreach (var (id, data) in duelData)
+                        var duelData = JObject.Parse(duelDataString);
+                        if (duelData != null)
                         {
-                            var order = int.Parse(id);
-                            var time = data.GetValueOrDefaultInt("time");
-                            var duelWinner = data.GetValueOrDefaultInt("winner");
-                            Duel duel = new Duel
+                            foreach (var (id, data) in duelData)
                             {
-                                MatchId = match.MatchId,
-                                Order = order,
-                                Winner = duelWinner,
-                                TimeStamp = time
-                            };
-                            _db.Duels.Add(duel);
+                                var order = int.Parse(id);
+                                var time = data.GetValueOrDefaultInt("time");
+                                var duelWinner = data.GetValueOrDefaultInt("winner");
+                                Duel duel = new Duel
+                                {
+                                    MatchId = match.MatchId,
+                                    Order = order,
+                                    Winner = duelWinner,
+                                    TimeStamp = time
+                                };
+                                _db.Duels.Add(duel);
+                            }
                         }
+                    } catch (Exception)
+                    {
+                        LoggingUtil.Warn($"No duel data available for Game #{match.MatchId}");
                     }
                 }
                 await _db.SaveChangesAsync();
