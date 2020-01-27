@@ -39,7 +39,6 @@ namespace LegionTDServerReborn.Pages
                 .Include(b => b.Statistics)
                 .AsNoTracking()
                 .SingleOrDefaultAsync(f => f.Name == BuilderName);
-            Console.WriteLine("Loaded builder");
             Units = await _db.Units
                 .Where(u => u.Fraction == Builder)
                 .Include(u => u.SpawnAbility)
@@ -52,7 +51,6 @@ namespace LegionTDServerReborn.Pages
             var sql = $"SELECT * FROM UnitStatistics WHERE UnitName IN ({unitString}) ORDER BY TimeStamp DESC LIMIT {Units.Count}";
             var statistics = await _db.UnitStatistics.FromSqlRaw(sql).ToListAsync();
             Statistics = Units.Zip(statistics).ToDictionary(i => i.First.Name, i => i.Second);
-            Console.WriteLine("Loaded units");
         }
     }
 }
