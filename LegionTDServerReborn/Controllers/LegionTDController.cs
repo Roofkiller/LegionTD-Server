@@ -963,7 +963,7 @@ namespace LegionTDServerReborn.Controllers
 
         private async Task<List<Player>> GetPlayersOrCreate(IEnumerable<long> steamIds) {
             var idString = String.Join(", ", steamIds);
-            var sql = $"SELECT * IN Players WHERE SteamId IN ({idString})";
+            var sql = $"SELECT * FROM Players WHERE SteamId IN ({idString})";
             var existingPlayers = await _db.Players.FromSqlRaw(sql).ToDictionaryAsync(p => p.SteamId, p => p);
             var result = new List<Player>();
             foreach (var steamId in steamIds) {
