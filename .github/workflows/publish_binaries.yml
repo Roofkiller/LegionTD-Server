@@ -3,9 +3,9 @@ name: .NET Core
 on:
   push:
     branches: 
-      - master
+    - master
     tags: 
-      - 'v*
+    - 'v*'
 
 jobs:
   build:
