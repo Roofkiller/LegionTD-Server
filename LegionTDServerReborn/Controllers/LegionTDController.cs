@@ -274,7 +274,13 @@ namespace LegionTDServerReborn.Controllers
             {
                 return Json(new NoPermissionFailure());
             }
-            await UpdateRanking(RankingTypes.Rating, false);
+            try {
+                await UpdateRanking(RankingTypes.Rating, false);
+            } catch (Exception e) {
+                LoggingUtil.Error("Failed to update ranking");
+                LoggingUtil.Error(e.StackTrace);
+                return Json(new { success = false });
+            }
             return Json(new { success = true });
         }
 
@@ -283,45 +289,48 @@ namespace LegionTDServerReborn.Controllers
             string key = type + "|" + asc;
             _cache.Set(key, true, DateTimeOffset.UtcNow.AddDays(1));
 
-            await _db.Database.ExecuteSqlRawAsync($"DELETE FROM Rankings WHERE Type = {(int)type} AND Ascending = {(asc ? 1 : 0)}");
-            Console.WriteLine($"Cleared Ranking for {type} {asc}");
-            string sql;
-            string sqlJoins = "JOIN Matches AS m \n" +
-                                "ON m.MatchId = pm.MatchId \n";
-            string sqlWheres = "WHERE m.IsTraining = FALSE \n";
-            string sqlSelects, sqlOrderBy;
-            switch (type)
-            {
-                case RankingTypes.EarnedTangos:
-                    sqlSelects = ", SUM(EarnedTangos) AS Gold \n";
-                    sqlOrderBy = "ORDER BY Gold " + (asc ? "ASC" : "DESC") + " \n";
-                    break;
-                case RankingTypes.EarnedGold:
-                    sqlSelects = ", SUM(EarnedGold) AS Gold \n";
-                    sqlOrderBy = "ORDER BY Gold " + (asc ? "ASC" : "DESC") + " \n";
-                    break;
-                case RankingTypes.Rating:
-                default:
-                    sqlSelects = ", SUM(RatingChange) AS Rating \n";
-                    sqlOrderBy = "ORDER BY Rating " + (asc ? "ASC" : "DESC") + " \n";
-                    sqlJoins = "";
-                    sqlWheres = "";
-                    break;
+            using (var transcation = await _db.Database.BeginTransactionAsync()) {
+                await _db.Database.ExecuteSqlRawAsync($"DELETE FROM Rankings WHERE Type = {(int)type} AND Ascending = {(asc ? 1 : 0)}");
+                Console.WriteLine($"Cleared Ranking for {type} {asc}");
+                string sql;
+                string sqlJoins = "JOIN Matches AS m \n" +
+                                    "ON m.MatchId = pm.MatchId \n";
+                string sqlWheres = "WHERE m.IsTraining = FALSE \n";
+                string sqlSelects, sqlOrderBy;
+                switch (type)
+                {
+                    case RankingTypes.EarnedTangos:
+                        sqlSelects = ", SUM(EarnedTangos) AS Gold \n";
+                        sqlOrderBy = "ORDER BY Gold " + (asc ? "ASC" : "DESC") + " \n";
+                        break;
+                    case RankingTypes.EarnedGold:
+                        sqlSelects = ", SUM(EarnedGold) AS Gold \n";
+                        sqlOrderBy = "ORDER BY Gold " + (asc ? "ASC" : "DESC") + " \n";
+                        break;
+                    case RankingTypes.Rating:
+                    default:
+                        sqlSelects = ", SUM(RatingChange) AS Rating \n";
+                        sqlOrderBy = "ORDER BY Rating " + (asc ? "ASC" : "DESC") + " \n";
+                        sqlJoins = "";
+                        sqlWheres = "";
+                        break;
+                }
+                sql = "INSERT INTO Rankings \n" +
+                    "(Type, Ascending, PlayerId, Position) \n" +
+                    $"SELECT @t := {(int)type}, @a := {(asc ? "TRUE" : "FALSE")}, PlayerId, @rownum := @rownum + 1 AS position\n" +
+                    "FROM (SELECT PlayerId \n" +
+                    sqlSelects +
+                    "FROM PlayerMatchData AS pm \n" +
+                    sqlJoins +
+                    sqlWheres +
+                    "GROUP BY pm.PlayerId \n" +
+                    sqlOrderBy +
+                    ") AS pr, \n" +
+                    "(SELECT @rownum := 0) AS r \n";
+                await _db.Database.ExecuteSqlRawAsync(sql);
+                await transcation.CommitAsync();
+                LoggingUtil.Log("Ranking has been updated.");
             }
-            sql = "INSERT INTO Rankings \n" +
-                "(Type, Ascending, PlayerId, Position) \n" +
-                $"SELECT @t := {(int)type}, @a := {(asc ? "TRUE" : "FALSE")}, PlayerId, @rownum := @rownum + 1 AS position\n" +
-                "FROM (SELECT PlayerId \n" +
-                sqlSelects +
-                "FROM PlayerMatchData AS pm \n" +
-                sqlJoins +
-                sqlWheres +
-                "GROUP BY pm.PlayerId \n" +
-                sqlOrderBy +
-                ") AS pr, \n" +
-                "(SELECT @rownum := 0) AS r \n";
-            await _db.Database.ExecuteSqlRawAsync(sql);
-            LoggingUtil.Log("Ranking has been updated.");
         }
 
         private async Task<ActionResult> UpdateUnitStatistics()
@@ -330,15 +339,24 @@ namespace LegionTDServerReborn.Controllers
             {
                 return Json(new NoPermissionFailure());
             }
-            var units = _db.Units.AsAsyncEnumerable();
-            var toWait = new List<Task>();
-            await foreach (var unit in units)
-            {
-                toWait.Append(UpdateUnitStatistic(unit.Name));
+            using (var transaction = await _db.Database.BeginTransactionAsync()) {
+                try {
+                    var units = await _db.Units.ToListAsync();
+                    var toWait = new List<Task>();
+                    foreach (var unit in units)
+                    {
+                        await UpdateUnitStatistic(unit.Name);
+                    }
+                    await _db.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                    LoggingUtil.Log("Unit statistics have been updated.");
+                    return Json(new { success = true });
+                } catch (Exception e) {
+                    LoggingUtil.Error("Failed to compute unit statistics");
+                    LoggingUtil.Error(e.StackTrace);
+                    return Json(new { success = false});
+                }
             }
-            Task.WaitAll(toWait.ToArray());
-            LoggingUtil.Log("Unit statistics have been updated.");
-            return Json(new { success = true });
         }
 
         private async Task UpdateUnitStatistic(string unitName)
@@ -347,18 +365,15 @@ namespace LegionTDServerReborn.Controllers
             var timeStamp = DateTimeOffset.UtcNow;
             var now = DateTime.UtcNow;
             var yesterday = now.AddDays(-1);
-            var unitData = _db.PlayerUnitRelations
-                .Include(r => r.PlayerMatch)
-                .ThenInclude(p => p.Match)
-                .Where(r => r.PlayerMatch.Match.Date >= yesterday && r.PlayerMatch.Match.Date <= now && r.UnitName == unitName && r.PlayerMatch.FractionName == unit.FractionName);
+            var unitData = await _db.PlayerUnitRelations
+                .Where(r => r.PlayerMatch.Match.Date >= yesterday && r.PlayerMatch.Match.Date <= now && r.UnitName == unitName && r.PlayerMatch.FractionName == unit.FractionName)
+                .ToListAsync();
             var matchData = _db.PlayerMatchData
-                .Include(p => p.Match)
-                .Include(p => p.UnitDatas)
                 .Where(r => r.Match.Date >= yesterday && r.Match.Date <= now && r.FractionName == unit.FractionName);
-            int killed = await unitData.SumAsync(d => d.Killed);
-            int leaked = await unitData.SumAsync(d => d.Leaked);
-            int send = await unitData.SumAsync(d => d.Send);
-            int build = await unitData.SumAsync(d => d.Build);
+            int killed = unitData.Sum(d => d.Killed);
+            int leaked = unitData.Sum(d => d.Leaked);
+            int send = unitData.Sum(d => d.Send);
+            int build = unitData.Sum(d => d.Build);
             var gameCount = await matchData.CountAsync();
             var gamesBuild = await matchData.CountAsync(m => m.UnitDatas.Any(u => u.UnitName == unitName && u.Build > 0));
             var gamesWon = await matchData.CountAsync(m => m.Match.Winner == m.Team && m.UnitDatas.Any(u => u.UnitName == unitName && u.Build > 0));
@@ -374,8 +389,6 @@ namespace LegionTDServerReborn.Controllers
                 GamesEvaluated = gameCount,
                 GamesWon = gamesWon
             });
-            _db.Entry(unit).State = EntityState.Modified;
-            await _db.SaveChangesAsync();
         }
 
         private async Task<ActionResult> UpdateFractionStatistics()
@@ -384,42 +397,55 @@ namespace LegionTDServerReborn.Controllers
             {
                 return Json(new NoPermissionFailure());
             }
-            var fractions = _db.Fractions.AsAsyncEnumerable();
-            await foreach (var fraction in fractions)
-            {
-                await UpdateFractionStatistic(fraction.Name);
+            using (var transaction = await _db.Database.BeginTransactionAsync()) {
+                try {
+                    var fractions = await _db.Fractions.ToListAsync();
+                    foreach (var fraction in fractions)
+                    {
+                        await UpdateFractionStatistic(fraction.Name);
+                    }
+                    await _db.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                    LoggingUtil.Log("Fraction statistics have been updated.");
+                    return Json(new { success = true });
+                } catch (Exception e) {
+                    LoggingUtil.Error("Failed to compute fraction statistics");
+                    LoggingUtil.Error(e.StackTrace);
+                    return Json(new { success = false });
+                }
             }
-            await _db.SaveChangesAsync();
-            LoggingUtil.Log("Fraction statistics have been updated.");
-            return Json(new { success = true });
         }
 
         private async Task UpdateFractionStatistic(string fractionName)
         {
-            Fraction fraction = await GetOrCreateFraction(fractionName);
             var timeStamp = DateTime.UtcNow;
             var yesterday = timeStamp.AddDays(-1);
-            var wins = await _db.Fractions.Include(b => b.PlayedMatches).ThenInclude(m => m.Match)
+            var wins = await _db.Fractions
+                .Include(b => b.PlayedMatches)
+                    .ThenInclude(m => m.Match)
                 .Where(f => f.Name == fractionName)
                 .SelectMany(b => b.PlayedMatches.Where(m => m.Match.Date > yesterday))
                 .CountAsync(m => m.Team == m.Match.Winner);
-            var count = await _db.Fractions.Include(b => b.PlayedMatches).ThenInclude(m => m.Match)
+            var count = await _db.Fractions
+                .Include(b => b.PlayedMatches)
+                    .ThenInclude(m => m.Match)
                 .Where(f => f.Name == fractionName)
                 .SelectMany(b => b.PlayedMatches.Where(m => m.Match.Date > yesterday))
                 .CountAsync();
-            var pickRate = await _db.Matches.Include(m => m.PlayerData)
+            var numPicks = await _db.Matches
+                .Include(m => m.PlayerData)
                 .Where(m => m.Date > yesterday)
-                .AverageAsync(m => m.PlayerData.Count(p => p.FractionName == fractionName));
+                .Select(m => m.PlayerData.Count(m => m.FractionName == fractionName))
+                .ToListAsync();
+            var pickRate = ((float)numPicks.Sum())/numPicks.Count;
             FractionStatistic statistic = new FractionStatistic()
             {
                 TimeStamp = timeStamp,
-                Fraction = fraction,
                 FractionName = fractionName,
                 WonGames = wins,
                 LostGames = count - wins,
-                PickRate = (float)pickRate
+                PickRate = pickRate
             };
-            _db.Update(fraction);
             _db.FractionStatistics.Add(statistic);
         }
 
@@ -713,6 +739,8 @@ namespace LegionTDServerReborn.Controllers
                     await DecideIsTraining(match);
                     await ModifyRatings(playerMatchDatas, match);
                     await _steamApi.UpdatePlayerInformation(players.Select(p => p.SteamId));
+                    await transaction.CommitAsync();
+
                     return Json(new { Success = true });
                 } catch (Exception e) {
                     LoggingUtil.Error("Saving match data failed");
