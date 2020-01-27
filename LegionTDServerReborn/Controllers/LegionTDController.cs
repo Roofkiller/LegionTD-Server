@@ -639,10 +639,12 @@ namespace LegionTDServerReborn.Controllers
             using (var transaction = await _db.Database.BeginTransactionAsync()) {
                 try {
                     //Creating Match
+                    LoggingUtil.Log("Creating match");
                     Match match = CreateMatch(winner.Value, duration, lastWave);
                     await _db.SaveChangesAsync();
 
                     //Adding Duels
+                    LoggingUtil.Log($"Adding duels to #{match.MatchId}");
                     if (!string.IsNullOrWhiteSpace(duelDataString))
                     {
                         Dictionary<int, Dictionary<String, float>> duelData = null;
@@ -675,12 +677,15 @@ namespace LegionTDServerReborn.Controllers
                     await _db.SaveChangesAsync();
 
                     //Adding player Data
+                    LoggingUtil.Log($"Creating players for #{match.MatchId}");
                     var playerData =
                         JsonConvert.DeserializeObject<Dictionary<long, Dictionary<string, string>>>(playerDataString);
                     var steamIds = playerData.Keys.ToList();
                     List<Player> players = await GetPlayersOrCreate(steamIds);
                     await _db.SaveChangesAsync();
 
+                    // Enter player data
+                    LoggingUtil.Log($"Adding player data to #{match.MatchId}");
                     List<PlayerMatchData> playerMatchDatas = new List<PlayerMatchData>();
                     foreach (var pair in playerData.Zip(players))
                     {
@@ -697,9 +702,14 @@ namespace LegionTDServerReborn.Controllers
                     }
                     await _db.SaveChangesAsync();
 
+                    // Add unit data
+                    LoggingUtil.Log($"Adding player unit to #{match.MatchId}");
                     foreach (var pair in playerMatchDatas.Zip(playerData)) {
                         await CreatePlayerUnitRelations(pair.First, pair.Second.Value);
                     }
+
+                    // Evaluate the match
+                    LoggingUtil.Log($"Validating #{match.MatchId}");
                     await DecideIsTraining(match);
                     await ModifyRatings(playerMatchDatas, match);
                     await _steamApi.UpdatePlayerInformation(players.Select(p => p.SteamId));
