@@ -339,23 +339,25 @@ namespace LegionTDServerReborn.Controllers
             {
                 return Json(new NoPermissionFailure());
             }
-            using (var transaction = await _db.Database.BeginTransactionAsync()) {
-                try {
-                    var units = await _db.Units.ToListAsync();
-                    var toWait = new List<Task>();
-                    foreach (var unit in units)
-                    {
-                        await UpdateUnitStatistic(unit.Name);
-                    }
-                    await _db.SaveChangesAsync();
-                    await transaction.CommitAsync();
-                    LoggingUtil.Log("Unit statistics have been updated.");
-                    return Json(new { success = true });
-                } catch (Exception e) {
-                    LoggingUtil.Error("Failed to compute unit statistics");
-                    LoggingUtil.Error(e.StackTrace);
-                    return Json(new { success = false});
+            using var transaction = await _db.Database.BeginTransactionAsync();
+            try
+            {
+                var units = await _db.Units.ToListAsync();
+                var toWait = new List<Task>();
+                foreach (var unit in units)
+                {
+                    await UpdateUnitStatistic(unit.Name);
                 }
+                await _db.SaveChangesAsync();
+                await transaction.CommitAsync();
+                LoggingUtil.Log("Unit statistics have been updated.");
+                return Json(new { success = true });
+            }
+            catch (Exception e)
+            {
+                LoggingUtil.Error("Failed to compute unit statistics");
+                LoggingUtil.Error(e.StackTrace);
+                return Json(new { success = false });
             }
         }
 
@@ -397,22 +399,24 @@ namespace LegionTDServerReborn.Controllers
             {
                 return Json(new NoPermissionFailure());
             }
-            using (var transaction = await _db.Database.BeginTransactionAsync()) {
-                try {
-                    var fractions = await _db.Fractions.ToListAsync();
-                    foreach (var fraction in fractions)
-                    {
-                        await UpdateFractionStatistic(fraction.Name);
-                    }
-                    await _db.SaveChangesAsync();
-                    await transaction.CommitAsync();
-                    LoggingUtil.Log("Fraction statistics have been updated.");
-                    return Json(new { success = true });
-                } catch (Exception e) {
-                    LoggingUtil.Error("Failed to compute fraction statistics");
-                    LoggingUtil.Error(e.StackTrace);
-                    return Json(new { success = false });
+            using var transaction = await _db.Database.BeginTransactionAsync();
+            try
+            {
+                var fractions = await _db.Fractions.ToListAsync();
+                foreach (var fraction in fractions)
+                {
+                    await UpdateFractionStatistic(fraction.Name);
                 }
+                await _db.SaveChangesAsync();
+                await transaction.CommitAsync();
+                LoggingUtil.Log("Fraction statistics have been updated.");
+                return Json(new { success = true });
+            }
+            catch (Exception e)
+            {
+                LoggingUtil.Error("Failed to compute fraction statistics");
+                LoggingUtil.Error(e.StackTrace);
+                return Json(new { success = false });
             }
         }
 
@@ -556,63 +560,71 @@ namespace LegionTDServerReborn.Controllers
             {
                 return Json(new InvalidRequestFailure());
             }
-            using (var transaction = await _db.Database.BeginTransactionAsync()) {
-                try {
-                    var usedAbilities = new List<string>();
-                    var unitNames = unitData.Properties().Select(p => p.Name).ToList();
-                    var sqlUnitNames = $"({String.Join(", ", unitNames.Select(u => $"'{u}'"))})";
-                    var sql = $"SELECT * FROM Units WHERE Name IN {sqlUnitNames}";
-                    var existingUnits = await  _db.Units.FromSqlRaw(sql).ToDictionaryAsync(u => u.Name, u => u);
-                    await _db.Database.ExecuteSqlRawAsync($"DELETE FROM UnitAbilities WHERE UnitName IN {sqlUnitNames}");
-                    foreach (var pair in unitData)
+            using var transaction = await _db.Database.BeginTransactionAsync();
+            try
+            {
+                var usedAbilities = new List<string>();
+                var unitNames = unitData.Properties().Select(p => p.Name).ToList();
+                var sqlUnitNames = $"({String.Join(", ", unitNames.Select(u => $"'{u}'"))})";
+                var sql = $"SELECT * FROM Units WHERE Name IN {sqlUnitNames}";
+                var existingUnits = await _db.Units.FromSqlRaw(sql).ToDictionaryAsync(u => u.Name, u => u);
+                await _db.Database.ExecuteSqlRawAsync($"DELETE FROM UnitAbilities WHERE UnitName IN {sqlUnitNames}");
+                foreach (var pair in unitData)
+                {
+                    string unitName = pair.Key;
+                    string fraction = pair.Value.GetValueOrDefault("LegionFraction") ?? "other";
+                    Unit unit = existingUnits.GetValueOrDefault(unitName);
+                    if (unit == null)
                     {
-                        string unitName = pair.Key;
-                        string fraction = pair.Value.GetValueOrDefault("LegionFraction") ?? "other";
-                        Unit unit = existingUnits.GetValueOrDefault(unitName);
-                        if (unit == null) {
-                            if (type == "builder") {
-                                unit = CreateBuilder(unitName);
-                            } else {
-                                unit = CreateUnit(unitName);
-                            }
-                            existingUnits[unitName] = unit;
-                        }
-                        _db.Attach(unit);
-                        unit.FractionName = fraction;
-                        unit.UpdateValues(pair.Value);
-                    }
-                    await _db.SaveChangesAsync();
-                    foreach (var pair in unitData)
-                    {
-                        string unitName = pair.Key;
-                        for (int i = 1; i <= 24; i++)
+                        if (type == "builder")
                         {
-                            string abilityName = pair.Value.GetValueOrDefault($"Ability{i}");
-                            if (!string.IsNullOrWhiteSpace(abilityName)) {
-                                var newAbility = new UnitAbility
-                                {
-                                    UnitName = unitName,
-                                    AbilityName = abilityName,
-                                    Slot = i
-                                };
-                                _db.UnitAbilities.Add(newAbility);
-                                usedAbilities.Add(abilityName);
-                            }
+                            unit = CreateBuilder(unitName);
+                        }
+                        else
+                        {
+                            unit = CreateUnit(unitName);
+                        }
+                        existingUnits[unitName] = unit;
+                    }
+                    _db.Attach(unit);
+                    unit.FractionName = fraction;
+                    unit.UpdateValues(pair.Value);
+                }
+                await _db.SaveChangesAsync();
+                foreach (var pair in unitData)
+                {
+                    string unitName = pair.Key;
+                    for (int i = 1; i <= 24; i++)
+                    {
+                        string abilityName = pair.Value.GetValueOrDefault($"Ability{i}");
+                        if (!string.IsNullOrWhiteSpace(abilityName))
+                        {
+                            var newAbility = new UnitAbility
+                            {
+                                UnitName = unitName,
+                                AbilityName = abilityName,
+                                Slot = i
+                            };
+                            _db.UnitAbilities.Add(newAbility);
+                            usedAbilities.Add(abilityName);
                         }
                     }
-                    if (usedAbilities.Count > 0) {
-                        sql = $"SELECT * FROM Abilities WHERE Name IN ({String.Join(", ", usedAbilities.Select(a => $"'{a}'"))})";
-                        var foundNames = await _db.Abilities.FromSqlRaw(sql).Select(a => a.Name).ToListAsync();
-                        usedAbilities.Except(foundNames).ToList().ForEach(a => CreateAbility(a));
-                    }
-                    await _db.SaveChangesAsync();
-                    await transaction.CommitAsync();
-                    return Json(new { Success = true });
-                } catch (Exception e) {
-                    LoggingUtil.Error($"Updating {type} data failed");
-                    LoggingUtil.Error(e.StackTrace);
-                    return Json(new { Success = false });
                 }
+                if (usedAbilities.Count > 0)
+                {
+                    sql = $"SELECT * FROM Abilities WHERE Name IN ({String.Join(", ", usedAbilities.Select(a => $"'{a}'"))})";
+                    var foundNames = await _db.Abilities.FromSqlRaw(sql).Select(a => a.Name).ToListAsync();
+                    usedAbilities.Except(foundNames).ToList().ForEach(a => CreateAbility(a));
+                }
+                await _db.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return Json(new { Success = true });
+            }
+            catch (Exception e)
+            {
+                LoggingUtil.Error($"Updating {type} data failed");
+                LoggingUtil.Error(e.StackTrace);
+                return Json(new { Success = false });
             }
         }
 
@@ -629,30 +641,33 @@ namespace LegionTDServerReborn.Controllers
             {
                 return Json(new InvalidRequestFailure());
             }
-            using (var transaction =  await _db.Database.BeginTransactionAsync()) {
-                try {
-                    var seenAbilities = new HashSet<string>();
-                    var abilities = new List<Ability>();
-                    var abilityNames = abilityData.Properties().Select(p => p.Name).Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
-                    var sql = $"SELECT * FROM Abilities WHERE Name IN ({String.Join(", ", abilityNames.Select(a => $"'{a}'"))})";
-                    var existingAbilities = await _db.Abilities.FromSqlRaw(sql).ToDictionaryAsync(u => u.Name, u => u);
-                    foreach (var pair in abilityData)
+            using var transaction = await _db.Database.BeginTransactionAsync();
+            try
+            {
+                var seenAbilities = new HashSet<string>();
+                var abilities = new List<Ability>();
+                var abilityNames = abilityData.Properties().Select(p => p.Name).Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
+                var sql = $"SELECT * FROM Abilities WHERE Name IN ({String.Join(", ", abilityNames.Select(a => $"'{a}'"))})";
+                var existingAbilities = await _db.Abilities.FromSqlRaw(sql).ToDictionaryAsync(u => u.Name, u => u);
+                foreach (var pair in abilityData)
+                {
+                    string abilityName = pair.Key;
+                    if (!string.IsNullOrWhiteSpace(abilityName) && !seenAbilities.Contains(abilityName))
                     {
-                        string abilityName = pair.Key;
-                        if (!string.IsNullOrWhiteSpace(abilityName) && !seenAbilities.Contains(abilityName)) {
-                            seenAbilities.Add(abilityName);
-                            Ability ability = existingAbilities.GetValueOrDefault(abilityName) ?? CreateAbility(abilityName);
-                            ability.UpdateValues(pair.Value);
-                        }
+                        seenAbilities.Add(abilityName);
+                        Ability ability = existingAbilities.GetValueOrDefault(abilityName) ?? CreateAbility(abilityName);
+                        ability.UpdateValues(pair.Value);
                     }
-                    await _db.SaveChangesAsync();
-                    await transaction.CommitAsync();
-                    return Json(new { Success = true });
-                } catch (Exception e) {
-                    LoggingUtil.Error("Updating ability data failed");
-                    LoggingUtil.Error(e.StackTrace);
-                    return Json(new { Success = false });
                 }
+                await _db.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return Json(new { Success = true });
+            }
+            catch (Exception e)
+            {
+                LoggingUtil.Error("Updating ability data failed");
+                LoggingUtil.Error(e.StackTrace);
+                return Json(new { Success = false });
             }
         }
 
@@ -662,102 +677,101 @@ namespace LegionTDServerReborn.Controllers
             if (!winner.HasValue || string.IsNullOrWhiteSpace(playerDataString))
                 return Json(new MissingArgumentFailure());
 
-            using (var transaction = await _db.Database.BeginTransactionAsync()) {
-                try {
-                    //Creating Match
-                    LoggingUtil.Log("Creating match");
-                    Match match = CreateMatch(winner.Value, duration, lastWave);
-                    await _db.SaveChangesAsync();
+            using var transaction = await _db.Database.BeginTransactionAsync();
+            try
+            {
+                //Creating Match
+                LoggingUtil.Log("Creating match");
+                Match match = CreateMatch(winner.Value, duration, lastWave);
+                await _db.SaveChangesAsync();
 
-                    //Adding Duels
-                    LoggingUtil.Log($"Adding duels to #{match.MatchId}");
-                    if (!string.IsNullOrWhiteSpace(duelDataString))
+                //Adding Duels
+                LoggingUtil.Log($"Adding duels to #{match.MatchId}");
+                if (!string.IsNullOrWhiteSpace(duelDataString))
+                {
+                    var duelData = JObject.Parse(duelDataString);
+                    if (duelData != null)
                     {
-                        Dictionary<int, Dictionary<String, float>> duelData = null;
-                        try
+                        foreach (var (id, data) in duelData)
                         {
-                            duelData = JsonConvert.DeserializeObject<Dictionary<int, Dictionary<String, float>>>(duelDataString);
-                        }
-                        catch (Exception)
-                        {
-                            try
+                            var order = int.Parse(id);
+                            var time = data.GetValueOrDefaultInt("time");
+                            var duelWinner = data.GetValueOrDefaultInt("winner");
+                            Duel duel = new Duel
                             {
-                                var data = JsonConvert.DeserializeObject<List<Dictionary<String, float>>>(duelDataString);
-                                for (int i = 0; i < data.Count; i++)
-                                {
-                                    duelData[i + 1] = data[i];
-                                }
-                            }
-                            catch (Exception) { }
-                        }
-                        if (duelData != null)
-                        {
-                            foreach (var pair in duelData)
-                            {
-                                var order = pair.Key;
-                                var data = pair.Value;
-                                CreateDuel(match, order, (int)data["winner"], data["time"]);
-                            }
+                                MatchId = match.MatchId,
+                                Order = order,
+                                Winner = duelWinner,
+                                TimeStamp = time
+                            };
+                            _db.Duels.Add(duel);
                         }
                     }
-                    await _db.SaveChangesAsync();
-
-                    //Adding player Data
-                    LoggingUtil.Log($"Creating players for #{match.MatchId}");
-                    var playerData =
-                        JsonConvert.DeserializeObject<Dictionary<long, Dictionary<string, string>>>(playerDataString);
-                    var steamIds = playerData.Keys.ToList();
-                    List<Player> players = await GetPlayersOrCreate(steamIds);
-                    await _db.SaveChangesAsync();
-
-                    // Enter player data
-                    LoggingUtil.Log($"Found {players.Count} of {steamIds.Count} players; Adding player data to #{match.MatchId}");
-                    List<PlayerMatchData> playerMatchDatas = new List<PlayerMatchData>();
-                    foreach (var (playerObj, player) in playerData.Zip(players))
-                    {
-                        Dictionary<string, string> decodedData = playerObj.Value;
-                        PlayerMatchData playerMatchData = CreatePlayerMatchData(player,
-                            match,
-                            decodedData["fraction"],
-                            int.Parse(decodedData["team"]),
-                            bool.Parse(decodedData["abandoned"]),
-                            int.Parse(decodedData["earned_tangos"]),
-                            int.Parse(decodedData["earned_gold"]));
-                        playerMatchDatas.Add(playerMatchData);
-                    }
-                    await _db.SaveChangesAsync();
-
-                    // Add unit data
-                    LoggingUtil.Log($"Added match data for {playerMatchDatas.Count} player; Adding player unit to #{match.MatchId}");
-                    foreach (var (matchData, playerObj) in playerMatchDatas.Zip(playerData)) {
-                        await CreatePlayerUnitRelations(matchData, playerObj.Value);
-                    }
-
-                    // Evaluate the match
-                    LoggingUtil.Log($"Validating #{match.MatchId}");
-                    match.IsTraining = DecideIsTraining(match);
-                    await ModifyRatings(playerMatchDatas, match);
-                    await _db.SaveChangesAsync();
-                       
-                    // Query steam info for all players
-                    await _steamApi.UpdatePlayerInformation(players.Select(p => p.SteamId));
-                    await transaction.CommitAsync();
-
-                    return Json(new { Success = true });
-                } catch (Exception e) {
-                    LoggingUtil.Error("Saving match data failed");
-                    LoggingUtil.Log(playerDataString);
-                    LoggingUtil.Log(duelDataString);
-                    LoggingUtil.Error(e.StackTrace);
-                    return Json(new { Success = false });
                 }
+                await _db.SaveChangesAsync();
+
+                //Adding player Data
+                LoggingUtil.Log($"Creating players for #{match.MatchId}");
+                var playerObjs = JObject.Parse(playerDataString);
+                var steamIds = playerObjs.Properties().Select(p => long.Parse(p.Name)).ToList();
+                List<Player> players = await GetPlayersOrCreate(steamIds);
+                await _db.SaveChangesAsync();
+
+                // Enter player data
+                LoggingUtil.Log($"Found {players.Count} of {steamIds.Count} players; Adding player data to #{match.MatchId}");
+                List<PlayerMatchData> playerData = new List<PlayerMatchData>();
+                foreach (var (steamId, player) in steamIds.Zip(players))
+                {
+                    var data = playerObjs[steamId.ToString()];
+                    var newData = new PlayerMatchData
+                    {
+                        Player = player,
+                        Match = match,
+                        Abandoned = data.GetValueOrDefaultInt("abandoned") > 1,
+                        Team = data.GetValueOrDefaultInt("team"),
+                        FractionName = data.GetValueOrDefault("fraction"),
+                        EarnedTangos = data.GetValueOrDefaultInt("earned_tangos"),
+                        EarnedGold = data.GetValueOrDefaultInt("earned_gold")
+                    };
+                    _db.PlayerMatchData.Add(newData);
+                    playerData.Add(newData);
+                }
+                await _db.SaveChangesAsync();
+
+                // Add unit data
+                LoggingUtil.Log($"Added match data for {playerData.Count} player; Adding player unit to #{match.MatchId}");
+                foreach (var (matchData, steamId) in playerData.Zip(steamIds))
+                {
+                    await CreatePlayerUnitRelations(matchData, playerObjs[steamId.ToString()] as JObject);
+                }
+
+                // Evaluate the match
+                LoggingUtil.Log($"Validating #{match.MatchId}");
+                match.IsTraining = DecideIsTraining(match, playerData);
+                await ModifyRatings(playerData, match);
+                await _db.SaveChangesAsync();
+
+                // Query steam info for all players
+                await _steamApi.UpdatePlayerInformation(players.Select(p => p.SteamId));
+                await transaction.CommitAsync();
+
+                LoggingUtil.Log($"Succesfully saved #{match.MatchId}. Is training: {match.IsTraining}");
+                return Json(new { Success = true });
+            }
+            catch (Exception e)
+            {
+                LoggingUtil.Error("Saving match data failed");
+                LoggingUtil.Log(playerDataString);
+                LoggingUtil.Log(duelDataString);
+                LoggingUtil.Error(e.StackTrace);
+                return Json(new { Success = false });
             }
         }
 
-        private bool DecideIsTraining(Match match)
+        private bool DecideIsTraining(Match match, IEnumerable<PlayerMatchData> playerData)
         {
-            return match.PlayerData.All(p => p.Team == match.Winner) ||
-                   match.PlayerData.All(p => p.Team != match.Winner);
+            return playerData.All(p => p.Team == match.Winner) ||
+                   playerData.All(p => p.Team != match.Winner);
         }
 
         private async Task ModifyRatings(List<PlayerMatchData> playerMatchDatas, Match match)
@@ -772,19 +786,6 @@ namespace LegionTDServerReborn.Controllers
                 p.RatingChange = p.CalculateRatingChange();
         }
 
-        private Duel CreateDuel(Match match, int order, int winner, float time)
-        {
-            Duel duel = new Duel
-            {
-                MatchId = match.MatchId,
-                Order = order,
-                Winner = winner,
-                TimeStamp = time
-            };
-            _db.Duels.Add(duel);
-            return duel;
-        }
-
         private static readonly Dictionary<string, Action<PlayerUnitRelation, int>> UnitRelationFunctions =
             new Dictionary<string, Action<PlayerUnitRelation, int>>
             {
@@ -795,7 +796,7 @@ namespace LegionTDServerReborn.Controllers
             };
 
         private async Task<List<PlayerUnitRelation>> CreatePlayerUnitRelations(PlayerMatchData playerMatchData,
-            Dictionary<string, string> decodedData)
+            JObject decodedData)
         {
             //local function to interpet the key
             //key is constructed like this: <type>_<unitname>
@@ -808,12 +809,12 @@ namespace LegionTDServerReborn.Controllers
             }
 
             Dictionary<string, PlayerUnitRelation> relations = new Dictionary<string, PlayerUnitRelation>();
-            foreach (var pair in decodedData)
+            foreach (var (key, value) in decodedData)
             {
-                var (unitName, type) = InterpretIdentifier(pair.Key);
+                var (unitName, type) = InterpretIdentifier(key);
                 if (unitName == null || type == null)
                     continue;
-                int count = int.Parse(pair.Value);
+                int count = value.Value<int>();
                 PlayerUnitRelation relation = relations.ContainsKey(unitName)
                     ? relations[unitName]
                     : new PlayerUnitRelation
@@ -841,7 +842,6 @@ namespace LegionTDServerReborn.Controllers
             p.CalculateStats();
             _db.Entry(p).State = EntityState.Modified;
             await _db.SaveChangesAsync();
-
             return result;
         }
 
@@ -901,23 +901,6 @@ namespace LegionTDServerReborn.Controllers
         }
 
 
-        private PlayerMatchData CreatePlayerMatchData(Player player, Match match, string fraction, int team,
-            bool abandoned, int earnedTangos, int earnedGold)
-        {
-            PlayerMatchData result = new PlayerMatchData
-            {
-                Player = player,
-                Match = match,
-                Abandoned = abandoned,
-                Team = team,
-                FractionName = fraction,
-                EarnedTangos = earnedTangos,
-                EarnedGold = earnedGold
-            };
-            _db.PlayerMatchData.Add(result);
-            return result;
-        }
-
         private Match CreateMatch(int winner, float duration, int lastWave)
         {
             Match match = new Match
@@ -932,8 +915,8 @@ namespace LegionTDServerReborn.Controllers
             return match;
         }
 
-        private async Task<List<Player>> GetPlayersOrCreate(IEnumerable<long> steamIds) {
-            var idString = String.Join(", ", steamIds);
+        private async Task<List<Player>> GetPlayersOrCreate(List<long> steamIds) {
+            var idString = string.Join(", ", steamIds);
             var sql = $"SELECT * FROM Players WHERE SteamId IN ({idString})";
             var existingPlayers = await _db.Players.FromSqlRaw(sql).ToDictionaryAsync(p => p.SteamId, p => p);
             var result = new List<Player>();
@@ -941,7 +924,7 @@ namespace LegionTDServerReborn.Controllers
                 if (!existingPlayers.ContainsKey(steamId)) {
                     existingPlayers[steamId] = CreatePlayer(steamId);
                 }
-                result.Append(existingPlayers[steamId]);
+                result.Add(existingPlayers[steamId]);
             }
             return result;
         }
