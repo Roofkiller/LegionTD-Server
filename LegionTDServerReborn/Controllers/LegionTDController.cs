@@ -696,7 +696,7 @@ namespace LegionTDServerReborn.Controllers
                             {
                                 var order = pair.Key;
                                 var data = pair.Value;
-                                Duel duel = CreateDuel(match, order, (int)data["winner"], data["time"]);
+                                CreateDuel(match, order, (int)data["winner"], data["time"]);
                             }
                         }
                     }
@@ -711,12 +711,11 @@ namespace LegionTDServerReborn.Controllers
                     await _db.SaveChangesAsync();
 
                     // Enter player data
-                    LoggingUtil.Log($"Adding player data to #{match.MatchId}");
+                    LoggingUtil.Log($"Found {players.Count} of {steamIds.Count} players; Adding player data to #{match.MatchId}");
                     List<PlayerMatchData> playerMatchDatas = new List<PlayerMatchData>();
-                    foreach (var pair in playerData.Zip(players))
+                    foreach (var (playerObj, player) in playerData.Zip(players))
                     {
-                        var player = pair.Second;
-                        Dictionary<string, string> decodedData = pair.First.Value;
+                        Dictionary<string, string> decodedData = playerObj.Value;
                         PlayerMatchData playerMatchData = CreatePlayerMatchData(player,
                             match,
                             decodedData["fraction"],
@@ -729,15 +728,18 @@ namespace LegionTDServerReborn.Controllers
                     await _db.SaveChangesAsync();
 
                     // Add unit data
-                    LoggingUtil.Log($"Adding player unit to #{match.MatchId}");
-                    foreach (var pair in playerMatchDatas.Zip(playerData)) {
-                        await CreatePlayerUnitRelations(pair.First, pair.Second.Value);
+                    LoggingUtil.Log($"Added match data for {playerMatchDatas.Count} player; Adding player unit to #{match.MatchId}");
+                    foreach (var (matchData, playerObj) in playerMatchDatas.Zip(playerData)) {
+                        await CreatePlayerUnitRelations(matchData, playerObj.Value);
                     }
 
                     // Evaluate the match
                     LoggingUtil.Log($"Validating #{match.MatchId}");
-                    await DecideIsTraining(match);
+                    match.IsTraining = DecideIsTraining(match);
                     await ModifyRatings(playerMatchDatas, match);
+                    await _db.SaveChangesAsync();
+                       
+                    // Query steam info for all players
                     await _steamApi.UpdatePlayerInformation(players.Select(p => p.SteamId));
                     await transaction.CommitAsync();
 
@@ -752,15 +754,10 @@ namespace LegionTDServerReborn.Controllers
             }
         }
 
-        private async Task DecideIsTraining(Match match)
+        private bool DecideIsTraining(Match match)
         {
-            var ma = await _db.Matches.IgnoreQueryFilters()
-                .Include(m => m.PlayerData)
-                .SingleAsync(m => m.MatchId == match.MatchId);
-            ma.IsTraining = ma.PlayerData.All(p => p.Team == match.Winner) ||
-                            ma.PlayerData.All(p => p.Team != match.Winner);
-            _db.Entry(ma).State = EntityState.Modified;
-            await _db.SaveChangesAsync();
+            return match.PlayerData.All(p => p.Team == match.Winner) ||
+                   match.PlayerData.All(p => p.Team != match.Winner);
         }
 
         private async Task ModifyRatings(List<PlayerMatchData> playerMatchDatas, Match match)
@@ -773,7 +770,6 @@ namespace LegionTDServerReborn.Controllers
                     .SingleAsync(player => player.SteamId == pl.PlayerId));
             foreach (var p in l.Select(p => p.Matches.Single(m => m.MatchId == match.MatchId)))
                 p.RatingChange = p.CalculateRatingChange();
-            await _db.SaveChangesAsync();
         }
 
         private Duel CreateDuel(Match match, int order, int winner, float time)
@@ -872,11 +868,6 @@ namespace LegionTDServerReborn.Controllers
             return ability;
         }
 
-        private async Task<Ability> GetOrCreateAbility(string abilityName)
-        {
-            Ability ability = (await _db.Abilities.FindAsync(abilityName)) ?? CreateAbility(abilityName);
-            return ability;
-        }
 
         private Builder CreateBuilder(string builderName)
         {
@@ -888,12 +879,6 @@ namespace LegionTDServerReborn.Controllers
             string fraction = builder.GetFractionByName();
             builder.FractionName = fraction;
             _db.Builders.Add(builder);
-            return builder;
-        }
-
-        private async Task<Builder> GetOrCreateBuilder(string builderName)
-        {
-            Builder builder = (await _db.Builders.FindAsync(builderName)) ?? CreateBuilder(builderName);
             return builder;
         }
 
@@ -915,16 +900,6 @@ namespace LegionTDServerReborn.Controllers
             return unit;
         }
 
-        private async Task<Fraction> GetOrCreateFraction(string name)
-        {
-            Fraction result = await _db.Fractions.FindAsync(name);
-            if (result == null)
-            {
-                result = new Fraction { Name = name };
-                _db.Fractions.Add(result);
-            }
-            return result;
-        }
 
         private PlayerMatchData CreatePlayerMatchData(Player player, Match match, string fraction, int team,
             bool abandoned, int earnedTangos, int earnedGold)
@@ -939,11 +914,7 @@ namespace LegionTDServerReborn.Controllers
                 EarnedTangos = earnedTangos,
                 EarnedGold = earnedGold
             };
-            _db.Entry(player).State = EntityState.Modified;
-            _db.Entry(match).State = EntityState.Modified;
-            _db.Entry(result.Fraction).State = EntityState.Modified;
             _db.PlayerMatchData.Add(result);
-
             return result;
         }
 
@@ -981,12 +952,6 @@ namespace LegionTDServerReborn.Controllers
                 SteamId = steamId,
             };
             _db.Players.Add(result);
-            return result;
-        }
-
-        private async Task<Player> GetOrCreatePlayer(long steamId)
-        {
-            Player result = await _db.Players.FindAsync(steamId) ?? CreatePlayer(steamId);
             return result;
         }
     }
