@@ -10,10 +10,10 @@ namespace LegionTDServerReborn.Models {
     public class UnitAbility {
         public string UnitName {get; set;}
         [ForeignKey("UnitName")]
-        public Unit Unit {get; set;}
+        public virtual Unit Unit {get; set;}
         public string AbilityName {get; set;}
         [ForeignKey("AbilityName")]
-        public Ability Ability {get; set;}
+        public virtual Ability Ability {get; set;}
         public int Slot {get; set;}
     }
 }

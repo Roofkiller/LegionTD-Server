@@ -14,9 +14,9 @@ namespace LegionTDServerReborn.Models
         [Key, DatabaseGenerated(DatabaseGeneratedOption.None)]
         public long SteamId { get; set; }
         [InverseProperty("Player")]
-        public List<PlayerMatchData> Matches { get; set; }
+        public virtual List<PlayerMatchData> Matches { get; set; }
         [InverseProperty("Player")]
-        public List<Ranking> Rankings {get; set;}
+        public virtual List<Ranking> Rankings {get; set;}
         [Column(TypeName = "VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci")]
         public string PersonaName {get; set;}
         public string Avatar {get; set;}

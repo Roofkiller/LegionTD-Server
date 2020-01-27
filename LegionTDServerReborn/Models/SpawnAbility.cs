@@ -10,6 +10,6 @@ namespace LegionTDServerReborn.Models {
     public class SpawnAbility : Ability {
         public string UnitName {get; set;}
         [ForeignKey("UnitName")]
-        public Unit Unit {get; set;}
+        public virtual Unit Unit {get; set;}
     }
 }

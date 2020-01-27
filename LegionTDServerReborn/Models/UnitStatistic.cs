@@ -11,7 +11,7 @@ namespace LegionTDServerReborn.Models{
         public DateTimeOffset TimeStamp {get; set;}
         public string UnitName {get; set;}
         [ForeignKey("UnitName")]
-        public Unit Unit {get; set;}
+        public virtual Unit Unit {get; set;}
         public int Killed {get; set;}
         public int Leaked {get; set;}
         public int Send {get; set;}

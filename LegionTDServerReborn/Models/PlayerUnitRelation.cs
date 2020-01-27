@@ -9,9 +9,9 @@ namespace LegionTDServerReborn.Models
         public int MatchId { get; set; }
         public string UnitName { get; set; }
         [ForeignKey("MatchId,PlayerId"), JsonIgnore]
-        public PlayerMatchData PlayerMatch { get; set; }
+        public virtual PlayerMatchData PlayerMatch { get; set; }
         [ForeignKey("UnitName")]
-        public Unit Unit { get; set; }
+        public virtual Unit Unit { get; set; }
 
         public int Killed { get; set; }
         public int Leaked { get; set; }

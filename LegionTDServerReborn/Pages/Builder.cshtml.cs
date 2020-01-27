@@ -23,8 +23,8 @@ namespace LegionTDServerReborn.Pages
         public bool Valid => Builder != null;
 
         public Fraction Builder {get; private set;}
-
-        public FractionStatistic Statistic {get; private set;}
+        public List<Unit> Units {get; private set;}
+        public Dictionary<string, UnitStatistic> Statistics {get; private set;}
 
         private LegionTdContext _db;
 
@@ -35,18 +35,24 @@ namespace LegionTDServerReborn.Pages
         public async Task OnGetAsync(string builder)
         {
             BuilderName = builder ?? "";
-            Builder = await _db.Fractions.Include(b => b.Units)
-                .ThenInclude(u => u.Abilities)
-                .ThenInclude(a => a.Ability)
-                .Include(b => b.Units)
-                .ThenInclude(u => u.SpawnAbility)
-                .Include(b => b.Units)
-                .ThenInclude(u => u.Statistics)
+            Builder = await _db.Fractions
                 .Include(b => b.Statistics)
+                .AsNoTracking()
                 .SingleOrDefaultAsync(f => f.Name == BuilderName);
-            if (Builder != null) {
-                Statistic = Builder.CurrentStatistic;
-            }
+            Console.WriteLine("Loaded builder");
+            Units = await _db.Units
+                .Where(u => u.Fraction == Builder)
+                .Include(u => u.SpawnAbility)
+                .Include(u => u.Abilities)
+                    .ThenInclude(a => a.Ability)
+                .ToListAsync();
+            // Units = tmp.Select(i => i.Item1).ToList();
+            // Statistics = tmp.ToDictionary(i => i.Item1.Name, i => i.Item2);
+            var unitString = string.Join(", ", Units.Select(u => $"'{u.Name}'"));
+            var sql = $"SELECT * FROM UnitStatistics WHERE UnitName IN ({unitString}) ORDER BY TimeStamp DESC LIMIT {Units.Count}";
+            var statistics = await _db.UnitStatistics.FromSqlRaw(sql).ToListAsync();
+            Statistics = Units.Zip(statistics).ToDictionary(i => i.First.Name, i => i.Second);
+            Console.WriteLine("Loaded units");
         }
     }
 }

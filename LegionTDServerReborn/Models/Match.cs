@@ -13,9 +13,9 @@ namespace LegionTDServerReborn.Models
         public int LastWave { get; set; }
         public float Duration { get; set; }
         [InverseProperty("Match")]
-        public List<PlayerMatchData> PlayerData { get; set; }
+        public virtual List<PlayerMatchData> PlayerData { get; set; }
         [InverseProperty("Match")]
-        public List<Duel> Duels { get; set; }
+        public virtual List<Duel> Duels { get; set; }
 
         public Match() { }
 
