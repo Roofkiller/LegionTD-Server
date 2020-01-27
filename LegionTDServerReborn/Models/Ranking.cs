@@ -26,7 +26,7 @@ namespace LegionTDServerReborn.Models
         public int Position { get; set; }
         public long PlayerId { get; set; }
         [ForeignKey("PlayerId")]
-        public Player Player { get; set; }
+        public virtual Player Player { get; set; }
         public bool Ascending { get; set; }
 
         public Ranking()

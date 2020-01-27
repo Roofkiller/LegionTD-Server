@@ -11,10 +11,10 @@ namespace LegionTDServerReborn.Models{
         public DateTime TimeStamp {get; set;}
         public string FractionName {get; set;}
         [ForeignKey("FractionName")]
-        public Fraction Fraction {get; set;}
+        public virtual Fraction Fraction {get; set;}
         public int WonGames {get; set;}
         public int LostGames {get; set;}
         public float PickRate {get; set;}
-        public float WinRate => (float)WonGames / (WonGames+LostGames);
+        public float WinRate => (WonGames+LostGames > 0) ? (float)WonGames / (WonGames+LostGames) : 0;
     }
 }

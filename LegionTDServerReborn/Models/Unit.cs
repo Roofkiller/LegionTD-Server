@@ -26,10 +26,10 @@ namespace LegionTDServerReborn.Models
         public string Name { get; set; }
         public string DisplayName {get; set;}
         public int Experience { get; set; }
-        public UnitType Type { get; set; }
+        public virtual UnitType Type { get; set; }
         public string FractionName {get; set;}
         [ForeignKey("FractionName")]
-        public Fraction Fraction { get; set; }
+        public virtual Fraction Fraction { get; set; }
 
         public float AttackDamageMin {get; set;}
         public float AttackDamageMax {get; set;}
@@ -50,14 +50,14 @@ namespace LegionTDServerReborn.Models
         public string LegionDefendType {get; set;}
         
         [InverseProperty("Unit")]
-        public List<UnitAbility> Abilities {get; set;}
+        public virtual List<UnitAbility> Abilities {get; set;}
 
         [InverseProperty("Unit")]
-        public SpawnAbility SpawnAbility {get; set;}
+        public virtual SpawnAbility SpawnAbility {get; set;}
 
         [InverseProperty("Unit")]
-        public List<UnitStatistic> Statistics {get; set;}
-        public UnitStatistic CurrentStatistic => Statistics.OrderByDescending(s => s.TimeStamp).FirstOrDefault();
+        public virtual List<UnitStatistic> Statistics {get; set;}
+        public virtual UnitStatistic CurrentStatistic => Statistics.OrderByDescending(s => s.TimeStamp).FirstOrDefault();
     
 
         public void UpdateValues(JToken values) {

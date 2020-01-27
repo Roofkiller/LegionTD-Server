@@ -17,9 +17,11 @@
             <div id='match_info' style="">
                     @{
                         var dictionary = new Dictionary<string, string>();
-                        dictionary["Pick Rate"] = $"{Model.Statistic.PickRate*100:00.00}%";
-                        dictionary["Games Today"] = $"<span class='radiant'>{@Model.Statistic.WonGames}</span> - <span class='dire'>{@Model.Statistic.LostGames}</span>";
-                        dictionary["Win Rate"] = $"{Model.Statistic.WinRate*100:00.00}%";
+                        if (Model.Builder != null) {
+                            dictionary["Pick Rate"] = $"{Model.Builder.CurrentStatistic.PickRate*100:00.00}%";
+                            dictionary["Games Today"] = $"<span class='radiant'>{@Model.Builder.CurrentStatistic.WonGames}</span> - <span class='dire'>{@Model.Builder.CurrentStatistic.LostGames}</span>";
+                            dictionary["Win Rate"] = $"{Model.Builder.CurrentStatistic.WinRate*100:00.00}%";
+                        }
                         <div class='row'>
                             @foreach (var pair in dictionary) {
                                 <div class='col-md-3 col-sm-3 col-xs-6 match-info'>
@@ -89,48 +91,50 @@
                     @<tr class='text-right'>
                     <td class='text-left'>
                         @{
-                            var indent = item.GetLevel();
+                            var unit = item;
+                            var stats = Model.Statistics[unit.Name];
+                            var indent = unit.GetLevel();
                         }
-                        <span style='padding-left: @(indent - 1 + "em")'>@item.DisplayName</span>
+                        <span style='padding-left: @(indent - 1 + "em")'>@unit.DisplayName</span>
                     </td>
                     <td>
-                        @item.CurrentStatistic.BuildsPerGame.ToString("F")
+                        @stats.BuildsPerGame.ToString("F")
                     </td>
                     <td>
-                        @($"{item.CurrentStatistic.WinRate*100:00.0}%")
+                        @($"{stats.WinRate*100:00.0}%")
                     </td>
                     <td>
-                        @item.GetGoldCost()
+                        @unit.GetGoldCost()
                     </td>
                     <td>
-                        @item.GetTotalGoldCost()
+                        @unit.GetTotalGoldCost()
                     </td>
                     <td>
-                        @item.StatusHealth
+                        @unit.StatusHealth
                     </td>
                     <td>
-                        @item.ArmorPhysical
+                        @unit.ArmorPhysical
                     </td>
                     <td>
-                        @((int)((item.AttackDamageMin + item.AttackDamageMax)/2))
+                        @((int)((unit.AttackDamageMin + unit.AttackDamageMax)/2))
                     </td>
                     <td>
-                        @item.AttackRate.ToString("0.00")
+                        @unit.AttackRate.ToString("0.00")
                     </td>
                     <td>
-                        @if (item.AttackRate == 0) {
+                        @if (unit.AttackRate == 0) {
                             <span>0</span>
                         } else {
-                            @((int)((item.AttackDamageMin + item.AttackDamageMax)/2 / item.AttackRate))
+                            @((int)((unit.AttackDamageMin + unit.AttackDamageMax)/2 / unit.AttackRate))
                         }
                     </td>
                     <td>
-                        @item.AttackRange
+                        @unit.AttackRange
                     </td>
                 </tr>;
                 
-                foreach(var unit in Model.Builder.Units.Where(u => u.GetParent() == null).OrderBy(u => u.GetGoldCost())) {
-                    Stack<Unit> toPrint = new Stack<Unit>();
+                var toPrint = new Stack<Unit>();
+                foreach(var unit in Model.Units.Where(u => u.GetParent() == null).OrderBy(u => u.GetGoldCost())) {
                     toPrint.Push(unit);
                     while (toPrint.Count > 0) {
                         var current = toPrint.Pop();

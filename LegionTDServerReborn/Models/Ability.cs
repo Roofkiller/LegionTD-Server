@@ -17,7 +17,7 @@ namespace LegionTDServerReborn.Models {
         public float Cooldown {get; set;}
         public float CastRange {get; set;}
         [InverseProperty("Ability")]
-        public List<UnitAbility> Casters {get; set;}
+        public virtual List<UnitAbility> Casters {get; set;}
 
         public bool UpdateValues(JToken values) {
             int oldGoldCost = GoldCost;

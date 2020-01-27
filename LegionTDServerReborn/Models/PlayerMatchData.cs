@@ -12,24 +12,24 @@ namespace LegionTDServerReborn.Models
     {
         public long PlayerId { get; set; }
         [ForeignKey("PlayerId"), JsonIgnore]
-        public Player Player { get; set; }
+        public virtual Player Player { get; set; }
         public int MatchId { get; set; }
         [ForeignKey("MatchId"), JsonIgnore]
-        public Match Match { get; set; }
+        public virtual Match Match { get; set; }
 
         public int Team { get; set; } 
 
         public bool Abandoned { get; set; }
 
         [InverseProperty("PlayerMatch")]
-        public List<PlayerUnitRelation> UnitDatas { get; set; }
+        public virtual List<PlayerUnitRelation> UnitDatas { get; set; }
         // [InverseProperty("PlayerMatch")]
         // public List<FractionData> FractionDatas {get;set;}
         public int RatingChange { get; set; }
         public int EarnedGold { get; set; }
         public int EarnedTangos { get; set; }
         [ForeignKey("FractionName")]
-        public Fraction Fraction { get; set; }
+        public virtual Fraction Fraction { get; set; }
         public string FractionName {get; set;}        
         public bool Won { get; set; }
         public int WonDuels { get; set; }

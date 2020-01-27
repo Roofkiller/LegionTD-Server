@@ -12,11 +12,11 @@ namespace LegionTDServerReborn.Models
         [Key]
         public string Name { get; set; }
         [InverseProperty("Fraction")]
-        public List<PlayerMatchData> PlayedMatches {get; set;}
+        public virtual List<PlayerMatchData> PlayedMatches {get; set;}
         [InverseProperty("Fraction")]
-        public List<Unit> Units {get; set;}
+        public virtual List<Unit> Units {get; set;}
         [InverseProperty("Fraction")]
-        public List<FractionStatistic> Statistics {get; set;}
-        public FractionStatistic CurrentStatistic => Statistics.OrderByDescending(s => s.TimeStamp).FirstOrDefault();
+        public virtual List<FractionStatistic> Statistics {get; set;}
+        public virtual FractionStatistic CurrentStatistic => Statistics.OrderByDescending(s => s.TimeStamp).FirstOrDefault();
     }
 }

@@ -12,7 +12,7 @@ namespace LegionTDServerReborn.Models
     {
         public int MatchId { get; set; }
         [ForeignKey("MatchId"), JsonIgnore]
-        public Match Match { get; set; }
+        public virtual Match Match { get; set; }
         public int Order { get; set; }
         public int Winner { get; set; }
 

@@ -1,19 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Text;
-using System.IO;
 using System.Threading.Tasks;
 using LegionTDServerReborn.Models;
 using LegionTDServerReborn.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.Extensions.Configuration;
-using System.Net.Http;
-using System.Net;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace LegionTDServerReborn.Pages
 {

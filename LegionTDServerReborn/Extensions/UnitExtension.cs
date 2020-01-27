@@ -23,10 +23,7 @@ namespace LegionTDServerReborn.Extensions
             }
             var abilities = unit.Abilities.Where(u => u.Ability != null & u.Ability is SpawnAbility)
                 .OrderByDescending(a => a.Slot).ToArray();
-            var result = new Unit[abilities.Length];
-            for (int i = 0; i < abilities.Length; i++) {
-                result[i] = ((SpawnAbility)abilities[i].Ability).Unit;
-            }
+            var result = abilities.Select(a => ((SpawnAbility)a.Ability).Unit).ToArray();
             return result;
         }
 

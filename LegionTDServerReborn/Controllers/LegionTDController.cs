@@ -79,7 +79,7 @@ namespace LegionTDServerReborn.Controllers
         public async Task<ActionResult> Get(string method, long? steamId, string rankingType, int? from, int? to,
             bool ascending, string steamIds, int? matchId, bool ipCheck, int? numDays, string fraction)
         {
-            var rType = !string.IsNullOrEmpty(rankingType) && RankingTypeDict.ContainsKey(rankingType) ? RankingTypeDict[rankingType] : RankingTypes.Invalid;
+            var rType = !string.IsNullOrWhiteSpace(rankingType) && RankingTypeDict.ContainsKey(rankingType) ? RankingTypeDict[rankingType] : RankingTypes.Invalid;
             switch (method)
             {
                 case GetMethods.CheckIp:
@@ -130,9 +130,10 @@ namespace LegionTDServerReborn.Controllers
             var dt = new DateTime(now.Year, now.Month, now.Day, 23, 59, 59);
             var nd = numDays ?? 31;
             dt = dt.AddDays(-nd);
-            return Json(await _db.FractionStatistics
-                                    .Where(s => s.TimeStamp > dt && s.FractionName == fraction)
-                                    .ToListAsync());
+            var result = await _db.FractionStatistics
+                                  .Where(s => s.TimeStamp > dt && s.FractionName == fraction)
+                                  .ToListAsync();
+            return Json(result);
         }
 
         public async Task<ActionResult> GetMatchesPerDay(int? numDays)
@@ -215,13 +216,8 @@ namespace LegionTDServerReborn.Controllers
             var ids = ranking.Select(r => r.PlayerId).ToArray();
             List<PlayerRankingResponse> result = new List<PlayerRankingResponse>();
             var query = GetFullPlayerQueryable(_db);
-            var values = new StringBuilder();
-            values.Append(ids[0]);
-            for (int i = 0; i < ids.Length; i++)
-            {
-                values.Append($", {ids[i]}");
-            }
-            var sql = $"SELECT * FROM Players p WHERE SteamId IN ({values})";
+            var steamIds = String.Join(", ", ids);
+            var sql = $"SELECT * FROM Players p WHERE SteamId IN ({steamIds})";
             var players = await _db.Players.FromSqlRaw(sql)
                 .Include(p => p.Matches)
                 .ThenInclude(m => m.Fraction)
@@ -464,7 +460,7 @@ namespace LegionTDServerReborn.Controllers
                 case PostMethods.UpdateAbilityData:
                     return await UpdateAbilityData(data);
                 case PostMethods.UpdateBuilders:
-                    return await UpdateBuilders(data);
+                    return await UpdateUnitData(data, "builder");
                 case PostMethods.SavePlayerData:
                 default:
                     return Json(new InvalidRequestFailure());
@@ -521,48 +517,9 @@ namespace LegionTDServerReborn.Controllers
             return result;
         }
 
-        private async Task<ActionResult> UpdateBuilders(string data)
+        private async Task<ActionResult> UpdateUnitData(string data, string type="unit")
         {
-            if (string.IsNullOrEmpty(data))
-                return Json(new MissingArgumentFailure());
-            JObject builderData;
-            try
-            {
-                builderData = JObject.Parse(data);
-            }
-            catch (Exception)
-            {
-                return Json(new InvalidRequestFailure());
-            }
-            var builders = new List<Builder>();
-            foreach (var pair in builderData)
-            {
-                string builderName = pair.Key;
-                string fraction = pair.Value.GetValueOrDefault("LegionFraction") ?? "other";
-                Builder builder = await GetOrCreateBuilder(builderName);
-                builder.Fraction = await GetOrCreateFraction(fraction);
-                builder.UpdateValues(pair.Value);
-                _db.UnitAbilities.RemoveRange(_db.UnitAbilities.Where(a => a.UnitName == builderName));
-                //await _db.Database.ExecuteSqlRawAsync($"DELETE FROM UnitAbilities WHERE UnitName = {builderName};");
-                for (int i = 1; i <= 24; i++)
-                {
-                    string abilityName = pair.Value.GetValueOrDefault($"Ability{i}");
-                    if (!string.IsNullOrEmpty(abilityName))
-                    {
-                        await GetOrCreateUnitAbility(builderName, abilityName, i);
-                    }
-                }
-                builders.Add(builder);
-            }
-            _db.UpdateRange(builders.Select(u => u.Fraction).ToArray());
-            _db.UpdateRange(builders);
-            await _db.SaveChangesAsync();
-            return Json(new { Success = true });
-        }
-
-        private async Task<ActionResult> UpdateUnitData(string data)
-        {
-            if (string.IsNullOrEmpty(data))
+            if (string.IsNullOrWhiteSpace(data))
                 return Json(new MissingArgumentFailure());
             JObject unitData;
             try
@@ -573,35 +530,60 @@ namespace LegionTDServerReborn.Controllers
             {
                 return Json(new InvalidRequestFailure());
             }
-            var units = new List<Unit>();
+            var usedAbilities = new List<string>();
+            var unitNames = unitData.Properties().Select(p => p.Name).ToList();
+            var sqlUnitNames = $"({String.Join(", ", unitNames.Select(u => $"'{u}'"))})";
+            var sql = $"SELECT * FROM Units WHERE Name IN {sqlUnitNames}";
+            var existingUnits = await  _db.Units.FromSqlRaw(sql).ToDictionaryAsync(u => u.Name, u => u);
+            await _db.Database.ExecuteSqlRawAsync($"DELETE FROM UnitAbilities WHERE UnitName IN {sqlUnitNames}");
             foreach (var pair in unitData)
             {
                 string unitName = pair.Key;
                 string fraction = pair.Value.GetValueOrDefault("LegionFraction") ?? "other";
-                Unit unit = await GetOrCreateUnit(unitName);
-                unit.Fraction = await GetOrCreateFraction(fraction);
+                Unit unit = existingUnits.GetValueOrDefault(unitName);
+                if (unit == null) {
+                    if (type == "builder") {
+                        unit = CreateBuilder(unitName);
+                    } else {
+                        unit = CreateUnit(unitName);
+                    }
+                    existingUnits[unitName] = unit;
+                }
+                _db.Attach(unit);
+                unit.FractionName = fraction;
                 unit.UpdateValues(pair.Value);
-                _db.UnitAbilities.RemoveRange(_db.UnitAbilities.Where(a => a.UnitName == unitName));
-                //await _db.Database.ExecuteSqlRawAsync($"DELETE FROM UnitAbilities WHERE UnitName = {unitName};");
+            }
+            await _db.SaveChangesAsync();
+            foreach (var pair in unitData)
+            {
+                string unitName = pair.Key;
                 for (int i = 1; i <= 24; i++)
                 {
                     string abilityName = pair.Value.GetValueOrDefault($"Ability{i}");
-                    if (!string.IsNullOrEmpty(abilityName))
-                    {
-                        await GetOrCreateUnitAbility(unitName, abilityName, i);
+                    if (!string.IsNullOrWhiteSpace(abilityName)) {
+                        var newAbility = new UnitAbility
+                        {
+                            UnitName = unitName,
+                            AbilityName = abilityName,
+                            Slot = i
+                        };
+                        _db.UnitAbilities.Add(newAbility);
+                        usedAbilities.Add(abilityName);
                     }
                 }
-                units.Add(unit);
             }
-            _db.UpdateRange(units.Select(u => u.Fraction));
-            _db.UpdateRange(units);
+            if (usedAbilities.Count > 0) {
+                sql = $"SELECT * FROM Abilities WHERE Name IN ({String.Join(", ", usedAbilities.Select(a => $"'{a}'"))})";
+                var foundNames = await _db.Abilities.FromSqlRaw(sql).Select(a => a.Name).ToListAsync();
+                usedAbilities.Except(foundNames).ToList().ForEach(a => CreateAbility(a));
+            }
             await _db.SaveChangesAsync();
             return Json(new { Success = true });
         }
 
         private async Task<ActionResult> UpdateAbilityData(string data)
         {
-            if (string.IsNullOrEmpty(data))
+            if (string.IsNullOrWhiteSpace(data))
                 return Json(new MissingArgumentFailure());
             JObject abilityData;
             try
@@ -612,12 +594,19 @@ namespace LegionTDServerReborn.Controllers
             {
                 return Json(new InvalidRequestFailure());
             }
+            var seenAbilities = new HashSet<string>();
             var abilities = new List<Ability>();
+            var abilityNames = abilityData.Properties().Select(p => p.Name).Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
+            var sql = $"SELECT * FROM Abilities WHERE Name IN ({String.Join(", ", abilityNames.Select(a => $"'{a}'"))})";
+            var existingAbilities = await _db.Abilities.FromSqlRaw(sql).ToDictionaryAsync(u => u.Name, u => u);
             foreach (var pair in abilityData)
             {
                 string abilityName = pair.Key;
-                Ability ability = await GetOrCreateAbility(abilityName);
-                ability.UpdateValues(pair.Value);
+                if (!string.IsNullOrWhiteSpace(abilityName) && !seenAbilities.Contains(abilityName)) {
+                    seenAbilities.Add(abilityName);
+                    Ability ability = existingAbilities.GetValueOrDefault(abilityName) ?? CreateAbility(abilityName);
+                    ability.UpdateValues(pair.Value);
+                }
             }
             await _db.SaveChangesAsync();
             return Json(new { Success = true });
@@ -626,14 +615,14 @@ namespace LegionTDServerReborn.Controllers
         public async Task<ActionResult> SaveMatchData(int? winner, string playerDataString, float duration,
             int lastWave, string duelDataString)
         {
-            if (!winner.HasValue || string.IsNullOrEmpty(playerDataString))
+            if (!winner.HasValue || string.IsNullOrWhiteSpace(playerDataString))
                 return Json(new MissingArgumentFailure());
 
             //Creating Match
             Match match = await CreateMatch(winner.Value, duration, lastWave);
 
             //Adding Duels
-            if (!string.IsNullOrEmpty(duelDataString))
+            if (!string.IsNullOrWhiteSpace(duelDataString))
             {
                 Dictionary<int, Dictionary<String, float>> duelData = null;
                 try
@@ -673,7 +662,7 @@ namespace LegionTDServerReborn.Controllers
                 long steamId = pair.Key;
                 Dictionary<string, string> decodedData = pair.Value;
                 Player player = await GetOrCreatePlayer(steamId);
-                PlayerMatchData playerMatchData = await CreatePlayerMatchData(player,
+                PlayerMatchData playerMatchData = CreatePlayerMatchData(player,
                     match,
                     decodedData["fraction"],
                     int.Parse(decodedData["team"]),
@@ -794,88 +783,69 @@ namespace LegionTDServerReborn.Controllers
             return result;
         }
 
-        private async Task<Ability> GetOrCreateAbility(string abilityName)
+        private Ability CreateAbility(string abilityName)
         {
-            Ability ability = await _db.Abilities.FindAsync(abilityName);
-            if (ability == null)
+            Ability ability;
+            if (Regex.IsMatch(abilityName, @".+builder_(spawn|upgrade)_.+"))
             {
-                if (Regex.IsMatch(abilityName, @".+builder_(spawn|upgrade)_.+"))
+                string unitName = "tower_" + Regex.Replace(abilityName, @"_(spawn|upgrade)", "");
+                ability = new SpawnAbility
                 {
-                    string unitName = "tower_" + Regex.Replace(abilityName, @"_(spawn|upgrade)", "");
-                    ability = new SpawnAbility
-                    {
-                        Unit = await GetOrCreateUnit(unitName),
-                        UnitName = unitName
-                    };
-                    _db.Update(((SpawnAbility)ability).Unit);
-                    _db.SpawnAbilities.Add((SpawnAbility)ability);
-                }
-                else
-                {
-                    ability = new Ability();
-                    _db.Abilities.Add(ability);
-                }
-                ability.Name = abilityName;
-                await _db.SaveChangesAsync();
+                    Name = abilityName,
+                    UnitName = unitName
+                };
+                _db.SpawnAbilities.Add((SpawnAbility)ability);
+            }
+            else
+            {
+                ability = new Ability{
+                    Name = abilityName
+                };
+                _db.Abilities.Add(ability);
             }
             return ability;
         }
 
-        private async Task<UnitAbility> GetOrCreateUnitAbility(string unitName, string abilityName, int slot)
+        private async Task<Ability> GetOrCreateAbility(string abilityName)
         {
-            var result = await _db.UnitAbilities.FindAsync(unitName, slot);
-            if (result == null)
+            Ability ability = (await _db.Abilities.FindAsync(abilityName)) ?? CreateAbility(abilityName);
+            return ability;
+        }
+
+        private Builder CreateBuilder(string builderName)
+        {
+            Builder builder = new Builder
             {
-                result = new UnitAbility
-                {
-                    UnitName = unitName,
-                    Unit = await GetOrCreateUnit(unitName),
-                    AbilityName = abilityName,
-                    Ability = await GetOrCreateAbility(abilityName),
-                    Slot = slot
-                };
-                _db.UnitAbilities.Add(result);
-                await _db.SaveChangesAsync();
-            }
-            return result;
+                Name = builderName
+            };
+            builder.SetTypeByName();
+            string fraction = builder.GetFractionByName();
+            builder.FractionName = fraction;
+            _db.Builders.Add(builder);
+            return builder;
         }
 
         private async Task<Builder> GetOrCreateBuilder(string builderName)
         {
-            Builder builder = await _db.Builders.FindAsync(builderName);
-            if (builder == null)
-            {
-                builder = new Builder
-                {
-                    Name = builderName
-                };
-                builder.SetTypeByName();
-                string fraction = builder.GetFractionByName();
-                builder.Fraction = await GetOrCreateFraction(fraction);
-                _db.Update(builder.Fraction);
-                _db.Builders.Add(builder);
-                await _db.SaveChangesAsync();
-            }
+            Builder builder = (await _db.Builders.FindAsync(builderName)) ?? CreateBuilder(builderName);
             return builder;
+        }
+
+        private Unit CreateUnit(string unitName) 
+        {
+            Unit unit = new Unit
+            {
+                Name = unitName,
+                Experience = 0
+            };
+            unit.SetTypeByName();
+            _db.Units.Add(unit);
+            return unit;
         }
 
         private async Task<Unit> GetOrCreateUnit(string unitName)
         {
-            Unit unit = await _db.Units.FindAsync(unitName);
-            if (unit == null)
-            {
-                unit = new Unit
-                {
-                    Name = unitName,
-                    Experience = 0
-                };
-                unit.SetTypeByName();
-                string fraction = unit.GetFractionByName();
-                unit.Fraction = await GetOrCreateFraction(fraction);
-                _db.Update(unit.Fraction);
-                _db.Units.Add(unit);
-                await _db.SaveChangesAsync();
-            }
+            Unit unit = (await _db.Units.FindAsync(unitName)) ?? CreateUnit(unitName);
             return unit;
         }
 
@@ -886,12 +856,11 @@ namespace LegionTDServerReborn.Controllers
             {
                 result = new Fraction { Name = name };
                 _db.Fractions.Add(result);
-                await _db.SaveChangesAsync();
             }
             return result;
         }
 
-        private async Task<PlayerMatchData> CreatePlayerMatchData(Player player, Match match, string fraction, int team,
+        private PlayerMatchData CreatePlayerMatchData(Player player, Match match, string fraction, int team,
             bool abandoned, int earnedTangos, int earnedGold)
         {
             PlayerMatchData result = new PlayerMatchData
@@ -900,7 +869,7 @@ namespace LegionTDServerReborn.Controllers
                 Match = match,
                 Abandoned = abandoned,
                 Team = team,
-                Fraction = await GetOrCreateFraction(fraction),
+                FractionName = fraction,
                 EarnedTangos = earnedTangos,
                 EarnedGold = earnedGold
             };
@@ -909,7 +878,6 @@ namespace LegionTDServerReborn.Controllers
             _db.Entry(result.Fraction).State = EntityState.Modified;
             _db.PlayerMatchData.Add(result);
 
-            await _db.SaveChangesAsync();
             return result;
         }
 
@@ -928,18 +896,18 @@ namespace LegionTDServerReborn.Controllers
             return match;
         }
 
+        private Player CreatePlayer(long steamId) {
+            Player result = new Player
+            {
+                SteamId = steamId,
+            };
+            _db.Players.Add(result);
+            return result;
+        }
+
         private async Task<Player> GetOrCreatePlayer(long steamId)
         {
-            Player result = await _db.Players.FindAsync(steamId);
-            if (result == null)
-            {
-                result = new Player
-                {
-                    SteamId = steamId,
-                };
-                _db.Players.Add(result);
-                await _db.SaveChangesAsync();
-            }
+            Player result = await _db.Players.FindAsync(steamId) ?? CreatePlayer(steamId);
             return result;
         }
     }
