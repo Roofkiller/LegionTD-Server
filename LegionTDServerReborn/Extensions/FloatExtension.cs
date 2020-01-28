@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace LegionTDServerReborn.Extensions
 {
-    public static class FloatExtension
+    public static class DbExtension
     {
         public static float NaNToZero(this float value)
         {

@@ -49,11 +49,16 @@ namespace LegionTDServerReborn
 
             services.AddSingleton<IConfiguration>(Configuration);
             services.AddTransient<SteamApi>();
+            services.AddTransient<FileLogger>();
 
             services.AddMemoryCache();
             services.AddDbContext<LegionTdContext>(
-                options => options.UseMySql(Configuration.GetConnectionString("MySQLConnection"), 
-                                            sqlServerOptions => sqlServerOptions.CommandTimeout(3600)));
+                options => {
+                    options.UseMySql(Configuration.GetConnectionString("MySQLConnection"),
+                                     sqlServerOptions => {
+                                         sqlServerOptions.CommandTimeout(3600);
+                                        });
+                });
             services.Configure<GzipCompressionProviderOptions>(options => options.Level =
                 System.IO.Compression.CompressionLevel.Optimal);
             services.AddResponseCompression();

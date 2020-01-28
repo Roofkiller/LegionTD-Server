@@ -82,6 +82,9 @@ namespace LegionTDServerReborn.Models
             LegionDefendType = values.GetValueOrDefault("LegionDefendType");       
 
             DisplayName = values.GetValueOrDefault("DisplayName");
+
+            FractionName = values.GetValueOrDefault("LegionFraction") ?? "other";
+
             if (string.IsNullOrEmpty(DisplayName)) {
                 DisplayName = Name;
             }
