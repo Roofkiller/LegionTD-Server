@@ -677,7 +677,8 @@ namespace LegionTDServerReborn.Controllers
 
                 //Adding Duels
                 LoggingUtil.Log($"Adding duels to #{match.MatchId}");
-                if (duelDataString.TryToJson(out JsonDocument duelDocument))
+                if (duelDataString.TryToJson(out JsonDocument duelDocument) 
+                    && duelDocument.RootElement.ValueKind == JsonValueKind.Object)
                 {
                     foreach (var duelProp in duelDocument.RootElement.EnumerateObject())
                     {
@@ -788,9 +789,10 @@ namespace LegionTDServerReborn.Controllers
                 p.RatingChange = p.CalculateRatingChange();
         }
 
-
         private Dictionary<string, UnitData> ExtractPlayerUnitData(JsonElement data)
         {
+            if (data.ValueKind != JsonValueKind.Object)
+                return new Dictionary<string, UnitData>();
             return data.EnumerateObject()
                 .Where(p => !string.IsNullOrWhiteSpace(p.Name))
                 .ToDictionary(p => p.Name, p => new UnitData
