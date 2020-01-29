@@ -738,7 +738,11 @@ namespace LegionTDServerReborn.Controllers
                 // Now extract the units from the properties
                 LoggingUtil.Log($"Added match data for {playerData.Count} player; Computing Player stats #{match.MatchId}");
                 var experiences = units.ToDictionary(u => u.Name, u => u.Experience);
-                _db.AttachRange(playerData);
+                playerData = await _db.PlayerMatchData
+                    .Include(p => p.Match)
+                        .ThenInclude(m => m.Duels)
+                    .Where(p => p.MatchId == match.MatchId)
+                    .ToListAsync();
                 foreach (var pData in playerData)
                     pData.CalculateStats(experiences);
                 await _db.SaveChangesAsync();
