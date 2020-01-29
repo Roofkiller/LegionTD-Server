@@ -676,10 +676,10 @@ namespace LegionTDServerReborn.Controllers
                 await _db.SaveChangesAsync();
 
                 //Adding Duels
-                LoggingUtil.Log($"Adding duels to #{match.MatchId}");
                 if (duelDataString.TryToJson(out JsonDocument duelDocument) 
                     && duelDocument.RootElement.ValueKind == JsonValueKind.Object)
                 {
+                    int createdDuels = 0;
                     foreach (var duelProp in duelDocument.RootElement.EnumerateObject())
                     {
                         var order = int.Parse(duelProp.Name);
@@ -693,31 +693,38 @@ namespace LegionTDServerReborn.Controllers
                             TimeStamp = time
                         };
                         _db.Duels.Add(duel);
+                        createdDuels += 1;
                     }
+                    LoggingUtil.Log($"[#{match.MatchId}] Added {createdDuels} duels");
                 } else
                 {
-                    LoggingUtil.Warn($"No duel data available for Game #{match.MatchId}");
+                    LoggingUtil.Warn($"[#{match.MatchId}] No duel data available for Game");
                 }
                 await _db.SaveChangesAsync();
 
                 //Adding player Data
-                LoggingUtil.Log($"Creating players for #{match.MatchId}");
+                LoggingUtil.Log($"[#{match.MatchId}] Creating players");
                 var playerObjs = playerDataString.ToJsonElement();
                 var steamIds = playerObjs.EnumerateObject().Select(p => long.Parse(p.Name)).ToList();
                 var players = await _db.GetOrCreateAsync(steamIds, p => p.SteamId, steamId => new Player { SteamId = steamId });
                 await _db.SaveChangesAsync();
 
                 // Enter player data
-                LoggingUtil.Log($"Found {players.Count} of {steamIds.Count} players; Adding player data to #{match.MatchId}");
+                LoggingUtil.Log($"[#{match.MatchId}] Found {players.Count} of {steamIds.Count} players; Adding player data");
                 var playerData = new List<PlayerMatchData>();
-                foreach (var (steamId, player) in steamIds.Zip(players))
+                foreach (var steamId in steamIds)
                 {
                     var data = playerObjs.GetProperty(steamId.ToString());
-                    var unitData = ExtractPlayerUnitData(data.GetProperty("unit_data"));
+                    var rawUnitData = data.GetProperty("unit_data");
+                    var unitData = new Dictionary<string, UnitData>();
+                    if (rawUnitData.ValueKind == JsonValueKind.Object)
+                        unitData = ExtractPlayerUnitData(rawUnitData);
+                    else
+                        LoggingUtil.Warn($"[#{match.MatchId}] No unit data for {steamId}");
                     var newData = new PlayerMatchData
                     {
-                        Player = player,
-                        Match = match,
+                        PlayerId = steamId,
+                        MatchId = match.MatchId,
                         Abandoned = data.GetBoolOrDefault("abandoned"),
                         Team = data.GetIntOrDefault("team"),
                         FractionName = data.GetValueOrDefault("fraction"),
@@ -736,28 +743,30 @@ namespace LegionTDServerReborn.Controllers
                 await _db.SaveChangesAsync();
 
                 // Now extract the units from the properties
-                LoggingUtil.Log($"Added match data for {playerData.Count} player; Computing Player stats #{match.MatchId}");
+                LoggingUtil.Log($"[#{match.MatchId}] Added match data for {playerData.Count} player; Computing Player stats");
                 var experiences = units.ToDictionary(u => u.Name, u => u.Experience);
                 playerData = await _db.PlayerMatchData
                     .Include(p => p.Match)
                         .ThenInclude(m => m.Duels)
                     .Where(p => p.MatchId == match.MatchId)
+                    .IgnoreQueryFilters()
                     .ToListAsync();
                 foreach (var pData in playerData)
                     pData.CalculateStats(experiences);
                 await _db.SaveChangesAsync();
 
                 // Evaluate the match
-                LoggingUtil.Log($"Validating #{match.MatchId}");
+                LoggingUtil.Log($"[#{match.MatchId}] Validating");
                 match.IsTraining = DecideIsTraining(match, playerData);
-                await ModifyRatings(playerData, match);
+                await _db.SaveChangesAsync();
+                await ModifyRatings(match, playerData);
                 await _db.SaveChangesAsync();
 
                 // Query steam info for all players
                 await _steamApi.UpdatePlayerInformation(players.Select(p => p.SteamId));
                 await transaction.CommitAsync();
 
-                LoggingUtil.Log($"Succesfully saved #{match.MatchId}. Is training: {match.IsTraining}");
+                LoggingUtil.Log($"[#{match.MatchId}] Succesfully saved. Is training: {match.IsTraining}");
                 return Json(new { Success = true });
             }
             catch (Exception e)
@@ -781,13 +790,13 @@ namespace LegionTDServerReborn.Controllers
                    playerData.All(p => p.Team != match.Winner);
         }
 
-        private async Task ModifyRatings(List<PlayerMatchData> playerMatchDatas, Match match)
+        private async Task ModifyRatings(Match match, List<PlayerMatchData> playerMatchDatas)
         {
             var l = new List<Player>();
             foreach (var pl in playerMatchDatas)
                 l.Add(await _db.Players
                     .Include(p => p.Matches)
-                    .ThenInclude(m => m.Match.PlayerData)
+                        .ThenInclude(m => m.Match.PlayerData)
                     .SingleAsync(player => player.SteamId == pl.PlayerId));
             foreach (var p in l.Select(p => p.Matches.Single(m => m.MatchId == match.MatchId)))
                 p.RatingChange = p.CalculateRatingChange();
@@ -795,8 +804,6 @@ namespace LegionTDServerReborn.Controllers
 
         private Dictionary<string, UnitData> ExtractPlayerUnitData(JsonElement data)
         {
-            if (data.ValueKind != JsonValueKind.Object)
-                return new Dictionary<string, UnitData>();
             return data.EnumerateObject()
                 .Where(p => !string.IsNullOrWhiteSpace(p.Name))
                 .ToDictionary(p => p.Name, p => new UnitData

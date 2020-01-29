@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using LegionTDServerReborn.Utils;
 
 namespace LegionTDServerReborn.Extensions
 {
@@ -45,7 +46,7 @@ namespace LegionTDServerReborn.Extensions
                     var newData = initFunc(id);
                     existingData[id] = newData;
                     dbSet.Add(newData);
-                    Console.WriteLine(id);
+                    LoggingUtil.Log($"Added {tableName} with key {id}");
                 }
                 result.Add(existingData[id]);
             }
