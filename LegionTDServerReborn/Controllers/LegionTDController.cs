@@ -712,7 +712,7 @@ namespace LegionTDServerReborn.Controllers
                 foreach (var (steamId, player) in steamIds.Zip(players))
                 {
                     var data = playerObjs.GetProperty(steamId.ToString());
-                    var unitData = ExtractPlayerUnitData(data);
+                    var unitData = ExtractPlayerUnitData(data.GetProperty("unit_data"));
                     var newData = new PlayerMatchData
                     {
                         Player = player,
@@ -730,7 +730,7 @@ namespace LegionTDServerReborn.Controllers
                 await _db.SaveChangesAsync();
 
                 // Ensure all units exists
-                var unitNames = playerData.SelectMany(p => p.UnitData.Object.Keys).ToList();
+                var unitNames = playerData.SelectMany(p => p.UnitData.Object.Keys).Distinct().ToList();
                 var units = await _db.GetOrCreateAsync(unitNames, u => u.Name, name => CreateUnitOrBuilder(name));
                 await _db.SaveChangesAsync();
 
@@ -763,9 +763,7 @@ namespace LegionTDServerReborn.Controllers
                     { "lastWave", lastWave },
                     { "playerData", playerDataString },
                     { "duelData", duelDataString },
-                    { "exception", e.ToString() },
-                    { "errorSource", e.Source },
-                    { "targetSite", e.TargetSite }
+                    { "exception", e.ToString() }
                 });
                 LoggingUtil.Error($"Saving match data failed; logged to {logFile}");
                 return Json(new { Success = false });
@@ -791,12 +789,11 @@ namespace LegionTDServerReborn.Controllers
         }
 
 
-        private const string UnitStatPrefix = "unitstat_";
         private Dictionary<string, UnitData> ExtractPlayerUnitData(JsonElement data)
         {
             return data.EnumerateObject()
-                .Where(p => p.Name.StartsWith(UnitStatPrefix))
-                .ToDictionary(p => p.Name.Replace(UnitStatPrefix, ""), p => new UnitData
+                .Where(p => !string.IsNullOrWhiteSpace(p.Name))
+                .ToDictionary(p => p.Name, p => new UnitData
                 {
                     Built = p.Value.GetIntOrDefault("built"),
                     Killed = p.Value.GetIntOrDefault("killed"),
