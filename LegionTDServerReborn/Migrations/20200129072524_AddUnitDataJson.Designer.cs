@@ -3,14 +3,16 @@ using System;
 using LegionTDServerReborn.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace LegionTDServerReborn.Migrations
 {
     [DbContext(typeof(LegionTdContext))]
-    partial class LegionTdContextModelSnapshot : ModelSnapshot
+    [Migration("20200129072524_AddUnitDataJson")]
+    partial class AddUnitDataJson
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -57,7 +59,7 @@ namespace LegionTDServerReborn.Migrations
                     b.Property<string>("Contact")
                         .HasColumnType("longtext CHARACTER SET utf8mb4");
 
-                    b.Property<DateTime>("CreationDate")
+                    b.Property<DateTimeOffset>("CreationDate")
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("Description")
@@ -224,7 +226,7 @@ namespace LegionTDServerReborn.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("UnitData")
-                        .HasColumnType("JSON");
+                        .HasColumnType("json");
 
                     b.Property<bool>("Won")
                         .HasColumnType("tinyint(1)");
@@ -396,7 +398,7 @@ namespace LegionTDServerReborn.Migrations
                     b.Property<string>("UnitName")
                         .HasColumnType("varchar(255) CHARACTER SET utf8mb4");
 
-                    b.Property<DateTime>("TimeStamp")
+                    b.Property<DateTimeOffset>("TimeStamp")
                         .HasColumnType("datetime(6)");
 
                     b.Property<int>("Build")

@@ -56,7 +56,7 @@ namespace LegionTDServerReborn
                 options => {
                     options.UseMySql(Configuration.GetConnectionString("MySQLConnection"),
                                      sqlServerOptions => {
-                                         sqlServerOptions.CommandTimeout(3600);
+                                         sqlServerOptions.CommandTimeout(36000);
                                         });
                 });
             services.Configure<GzipCompressionProviderOptions>(options => options.Level =

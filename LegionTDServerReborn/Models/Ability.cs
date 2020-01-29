@@ -4,8 +4,9 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Text.Json;
 using LegionTDServerReborn.Extensions;
-using Newtonsoft.Json.Linq;
+
 
 namespace LegionTDServerReborn.Models {
     public class Ability {
@@ -19,15 +20,15 @@ namespace LegionTDServerReborn.Models {
         [InverseProperty("Ability")]
         public virtual List<UnitAbility> Casters {get; set;}
 
-        public bool UpdateValues(JToken values) {
+        public bool UpdateValues(JsonElement values) {
             int oldGoldCost = GoldCost;
             int oldManaCost = ManaCost;
             float oldCooldown = Cooldown;
             float oldCastRange = CastRange;
-            GoldCost = values.GetValueOrDefaultInt("AbilityGoldCost");
-            ManaCost = values.GetValueOrDefaultInt("AbilityManaCost");
-            Cooldown = values.GetValueOrDefaultFloat("AbilityCooldown");
-            CastRange = values.GetValueOrDefaultFloat("AbilityCastRange");
+            GoldCost = values.GetIntOrDefault("AbilityGoldCost");
+            ManaCost = values.GetIntOrDefault("AbilityManaCost");
+            Cooldown = values.GetFloatOrDefault("AbilityCooldown");
+            CastRange = values.GetFloatOrDefault("AbilityCastRange");
             DisplayName = values.GetValueOrDefault("DisplayName");
             if (string.IsNullOrEmpty(DisplayName)) {
                 DisplayName = Name;

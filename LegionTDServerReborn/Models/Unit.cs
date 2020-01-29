@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using LegionTDServerReborn.Extensions;
@@ -60,32 +61,31 @@ namespace LegionTDServerReborn.Models
         public virtual UnitStatistic CurrentStatistic => Statistics.OrderByDescending(s => s.TimeStamp).FirstOrDefault();
     
 
-        public void UpdateValues(JToken values) {
-            Experience = values.GetValueOrDefaultInt("LegionExperience");
+        public void UpdateValues(JsonElement values) {
+            Experience = values.GetIntOrDefault("LegionExperience");
             
-            AttackDamageMin = values.GetValueOrDefaultFloat("AttackDamageMin");
-            AttackDamageMax = values.GetValueOrDefaultFloat("AttackDamageMax");
-            AttackRate = values.GetValueOrDefaultFloat("AttackRate");
-            AttackRange = values.GetValueOrDefaultFloat("AttackRange");
+            AttackDamageMin = values.GetFloatOrDefault("AttackDamageMin");
+            AttackDamageMax = values.GetFloatOrDefault("AttackDamageMax");
+            AttackRate = values.GetFloatOrDefault("AttackRate");
+            AttackRange = values.GetFloatOrDefault("AttackRange");
 
-            ArmorPhysical = values.GetValueOrDefaultFloat("ArmorPhysical");
-            MagicResistance = values.GetValueOrDefaultFloat("MagicResistance");
-            StatusHealth = values.GetValueOrDefaultFloat("StatusHealth");
-            StatusHealthRegen = values.GetValueOrDefaultFloat("StatusHealthRegen");
-            StatusMana = values.GetValueOrDefaultFloat("StatusMana");
-            StatusManaRegen = values.GetValueOrDefaultFloat("StatusManaRegen");
+            ArmorPhysical = values.GetFloatOrDefault("ArmorPhysical");
+            MagicResistance = values.GetFloatOrDefault("MagicResistance");
+            StatusHealth = values.GetFloatOrDefault("StatusHealth");
+            StatusHealthRegen = values.GetFloatOrDefault("StatusHealthRegen");
+            StatusMana = values.GetFloatOrDefault("StatusMana");
+            StatusManaRegen = values.GetFloatOrDefault("StatusManaRegen");
 
-            BountyGoldMin = values.GetValueOrDefaultFloat("BountyGoldMin");
-            BountyGoldMax = values.GetValueOrDefaultFloat("BountyGoldMax");
+            BountyGoldMin = values.GetFloatOrDefault("BountyGoldMin");
+            BountyGoldMax = values.GetFloatOrDefault("BountyGoldMax");
 
             LegionAttackType = values.GetValueOrDefault("LegionAttackType");
             LegionDefendType = values.GetValueOrDefault("LegionDefendType");       
 
-            DisplayName = values.GetValueOrDefault("DisplayName");
-
             FractionName = values.GetValueOrDefault("LegionFraction") ?? "other";
 
-            if (string.IsNullOrEmpty(DisplayName)) {
+            DisplayName = values.GetValueOrDefault("DisplayName");
+            if (string.IsNullOrWhiteSpace(DisplayName)) {
                 DisplayName = Name;
             }
         }

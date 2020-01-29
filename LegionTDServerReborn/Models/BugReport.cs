@@ -14,6 +14,6 @@ namespace LegionTDServerReborn.Models {
         [Required, StringLength(512)]
         public string Description {get; set;}
         public bool Done {get; set;}
-        public DateTimeOffset CreationDate {get; set;}
+        public DateTime CreationDate {get; set;}
     }
 }

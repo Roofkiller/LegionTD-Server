@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 
+
 namespace LegionTDServerReborn.Models
 {
     public class PlayerMatchData
@@ -39,16 +40,18 @@ namespace LegionTDServerReborn.Models
         public int Leaks { get; set; }
         public int Builds { get; set; }
         public int Sends { get; set; }
-
-        public void CalculateStats() {
+        [Column(TypeName = "JSON")]
+        public JsonObject<Dictionary<string, UnitData>> UnitData { get; set; }
+        
+        public void CalculateStats(Dictionary<string, int> experiences) {
             Won = Match.Winner == Team && !Abandoned;
             WonDuels = Match.Duels.Count(d => d.Winner == Team);
             LostDuels = Match.Duels.Count(d => d.Winner != Team);
-            Experience = UnitDatas.Sum(u => u.Killed * u.Unit.Experience);
-            Kills = UnitDatas.Sum(u => u.Killed);
-            Leaks = UnitDatas.Sum(u => u.Leaked);
-            Builds = UnitDatas.Sum(u => u.Build);
-            Sends = UnitDatas.Sum(u => u.Send);
+            Experience = UnitData.Object.Sum(kv => kv.Value.Killed * experiences[kv.Key]);
+            Kills = UnitData.Object.Sum(kv => kv.Value.Killed);
+            Leaks = UnitData.Object.Sum(kv => kv.Value.Leaked);
+            Builds = UnitData.Object.Sum(kv => kv.Value.Built);
+            Sends = UnitData.Object.Sum(kv => kv.Value.Sent);
         }
 
         public int CalculateRatingChange()

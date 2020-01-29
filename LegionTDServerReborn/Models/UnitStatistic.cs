@@ -8,7 +8,7 @@ using Newtonsoft.Json;
 
 namespace LegionTDServerReborn.Models{
     public class UnitStatistic {
-        public DateTimeOffset TimeStamp {get; set;}
+        public DateTime TimeStamp {get; set;}
         public string UnitName {get; set;}
         [ForeignKey("UnitName")]
         public virtual Unit Unit {get; set;}

@@ -26,7 +26,7 @@ namespace LegionTDServerReborn.Services
             _logFolder = configuration["logFolder"];
         }
 
-        public async Task<string> LogToFile(string folder, IDictionary<string, object> toLog)
+        public async Task<string> LogToFile<T>(string folder, IDictionary<string, T> toLog)
         {
             var now = DateTime.UtcNow;
             var dir = Path.Combine(_logFolder, folder);

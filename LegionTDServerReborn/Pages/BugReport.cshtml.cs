@@ -33,7 +33,7 @@ namespace LegionTDServerReborn.Pages
                 return Page();
             }
 
-            Bug.CreationDate = DateTimeOffset.UtcNow;
+            Bug.CreationDate = DateTime.UtcNow;
             _db.BugReports.Add(Bug);
             await _db.SaveChangesAsync();
             return RedirectToPage(new {success = true});

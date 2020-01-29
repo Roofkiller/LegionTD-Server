@@ -1,12 +1,16 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using Newtonsoft.Json;
 
 namespace LegionTDServerReborn.Models
 {
     public class PlayerUnitRelation
     {
+        [Key]
+        public long Id { get; set; }
         public long PlayerId { get; set; }
         public int MatchId { get; set; }
+        [Required]
         public string UnitName { get; set; }
         [ForeignKey("MatchId,PlayerId"), JsonIgnore]
         public virtual PlayerMatchData PlayerMatch { get; set; }

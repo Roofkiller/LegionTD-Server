@@ -35,7 +35,7 @@ namespace LegionTDServerReborn.Models
             base.OnModelCreating(modelBuilder);
             modelBuilder.Entity<Duel>().HasKey(d => new { d.MatchId, d.Order });
             modelBuilder.Entity<PlayerMatchData>().HasKey(d => new { d.MatchId, d.PlayerId });
-            modelBuilder.Entity<PlayerUnitRelation>().HasKey(d => new { d.MatchId, d.PlayerId, d.UnitName });
+            // modelBuilder.Entity<PlayerUnitRelation>().HasKey(d => new { d.MatchId, d.PlayerId, d.UnitName });
             // modelBuilder.Entity<FractionData>().HasKey(d => new {d.MatchId, d.PlayerId, d.FractionName});
             modelBuilder.Entity<FractionStatistic>().HasKey(f => new {f.FractionName, f.TimeStamp});
             modelBuilder.Entity<Ranking>().HasKey(r => new { r.Type, r.Ascending, r.PlayerId});
