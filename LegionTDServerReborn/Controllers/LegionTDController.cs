@@ -295,48 +295,56 @@ namespace LegionTDServerReborn.Controllers
         {
             string key = type + "|" + asc;
             _cache.Set(key, true, DateTime.UtcNow.AddDays(1));
-
-            using (var transcation = await _db.Database.BeginTransactionAsync()) {
-                await _db.Database.ExecuteSqlRawAsync($"DELETE FROM Rankings WHERE Type = {(int)type} AND Ascending = {(asc ? 1 : 0)}");
-                LoggingUtil.Log($"Cleared Ranking for {type} {asc}");
-                string sql;
-                string sqlJoins = "JOIN Matches AS m \n" +
-                                    "ON m.MatchId = pm.MatchId \n";
-                string sqlWheres = "WHERE m.IsTraining = FALSE \n";
-                string sqlSelects, sqlOrderBy;
-                switch (type)
-                {
-                    case RankingTypes.EarnedTangos:
-                        sqlSelects = ", SUM(EarnedTangos) AS Gold \n";
-                        sqlOrderBy = "ORDER BY Gold " + (asc ? "ASC" : "DESC") + " \n";
-                        break;
-                    case RankingTypes.EarnedGold:
-                        sqlSelects = ", SUM(EarnedGold) AS Gold \n";
-                        sqlOrderBy = "ORDER BY Gold " + (asc ? "ASC" : "DESC") + " \n";
-                        break;
-                    case RankingTypes.Rating:
-                    default:
-                        sqlSelects = ", SUM(RatingChange) AS Rating \n";
-                        sqlOrderBy = "ORDER BY Rating " + (asc ? "ASC" : "DESC") + " \n";
-                        sqlJoins = "";
-                        sqlWheres = "";
-                        break;
+            var oldTimeout =_db.Database.GetCommandTimeout();
+            _db.Database.SetCommandTimeout(TimeSpan.FromHours(1));
+            try {
+                using (var transcation = await _db.Database.BeginTransactionAsync()) {
+                    await _db.Database.ExecuteSqlRawAsync($"DELETE FROM Rankings WHERE Type = {(int)type} AND Ascending = {(asc ? 1 : 0)}");
+                    LoggingUtil.Log($"Cleared Ranking for {type} {asc}");
+                    string sql;
+                    string sqlJoins = "JOIN Matches AS m \n" +
+                                        "ON m.MatchId = pm.MatchId \n";
+                    string sqlWheres = "WHERE m.IsTraining = FALSE \n";
+                    string sqlSelects, sqlOrderBy;
+                    switch (type)
+                    {
+                        case RankingTypes.EarnedTangos:
+                            sqlSelects = ", SUM(EarnedTangos) AS Gold \n";
+                            sqlOrderBy = "ORDER BY Gold " + (asc ? "ASC" : "DESC") + " \n";
+                            break;
+                        case RankingTypes.EarnedGold:
+                            sqlSelects = ", SUM(EarnedGold) AS Gold \n";
+                            sqlOrderBy = "ORDER BY Gold " + (asc ? "ASC" : "DESC") + " \n";
+                            break;
+                        case RankingTypes.Rating:
+                        default:
+                            sqlSelects = ", SUM(RatingChange) AS Rating \n";
+                            sqlOrderBy = "ORDER BY Rating " + (asc ? "ASC" : "DESC") + " \n";
+                            sqlJoins = "";
+                            sqlWheres = "";
+                            break;
+                    }
+                    sql = "INSERT INTO Rankings \n" +
+                        "(Type, Ascending, PlayerId, Position) \n" +
+                        $"SELECT @t := {(int)type}, @a := {(asc ? "TRUE" : "FALSE")}, PlayerId, @rownum := @rownum + 1 AS position\n" +
+                        "FROM (SELECT PlayerId \n" +
+                        sqlSelects +
+                        "FROM PlayerMatchData AS pm \n" +
+                        sqlJoins +
+                        sqlWheres +
+                        "GROUP BY pm.PlayerId \n" +
+                        sqlOrderBy +
+                        ") AS pr, \n" +
+                        "(SELECT @rownum := 0) AS r \n";
+                    await _db.Database.ExecuteSqlRawAsync(sql);
+                    await transcation.CommitAsync();
+                    LoggingUtil.Log("Ranking has been updated.");
                 }
-                sql = "INSERT INTO Rankings \n" +
-                    "(Type, Ascending, PlayerId, Position) \n" +
-                    $"SELECT @t := {(int)type}, @a := {(asc ? "TRUE" : "FALSE")}, PlayerId, @rownum := @rownum + 1 AS position\n" +
-                    "FROM (SELECT PlayerId \n" +
-                    sqlSelects +
-                    "FROM PlayerMatchData AS pm \n" +
-                    sqlJoins +
-                    sqlWheres +
-                    "GROUP BY pm.PlayerId \n" +
-                    sqlOrderBy +
-                    ") AS pr, \n" +
-                    "(SELECT @rownum := 0) AS r \n";
-                await _db.Database.ExecuteSqlRawAsync(sql);
-                await transcation.CommitAsync();
-                LoggingUtil.Log("Ranking has been updated.");
+            } catch (Exception e) {
+                LoggingUtil.Error(e.ToString());
+                LoggingUtil.Error("Failed to update ranking");
+            } finally {
+                _db.Database.SetCommandTimeout(oldTimeout);
             }
         }
 
@@ -670,7 +678,9 @@ namespace LegionTDServerReborn.Controllers
                     Duration = duration,
                     LastWave = lastWave,
                     Date = DateTime.UtcNow,
-                    IsTraining = true
+                    IsTraining = true,
+                    Duels = new List<Duel>(),
+                    PlayerData = new List<PlayerMatchData>()
                 };
                 _db.Matches.Add(match);
                 await _db.SaveChangesAsync();
@@ -689,11 +699,13 @@ namespace LegionTDServerReborn.Controllers
                         var duelWinner = duelProp.Value.GetIntOrDefault("winner");
                         Duel duel = new Duel
                         {
+                            Match = match,
                             MatchId = match.MatchId,
                             Order = order,
                             Winner = duelWinner,
                             TimeStamp = time
                         };
+                        match.Duels.Add(duel);
                         _db.Duels.Add(duel);
                         createdDuels += 1;
                     }
@@ -706,12 +718,29 @@ namespace LegionTDServerReborn.Controllers
                 //Adding player Data
                 var playerObjs = playerDataString.ToJsonElement();
                 var steamIds = playerObjs.EnumerateObject().Select(p => long.Parse(p.Name)).ToList();
-                var players = await _db.GetOrCreateAsync(steamIds, p => p.SteamId, steamId => new Player { SteamId = steamId });
+                var players = await _db.GetOrCreateAsync(
+                    steamIds, 
+                    p => p.SteamId, 
+                    steamId => new Player { 
+                        SteamId = steamId,
+                        Matches = new List<PlayerMatchData>()
+                    },
+                    query: players => players
+                        .Include(p => p.Matches)
+                        .ThenInclude(m => m.Match)
+                ); // We request the match history to calculate the rating change
+                try {
+                    var steamInfo = await _steamApi.RequestPlayerInformation(steamIds);
+                    players.ForEach(p => p.Update(steamInfo[p.SteamId]));
+                } catch (Exception) {
+                    LoggingUtil.Warn("Couldn't retrieve steam info.");
+                }
                 await _db.SaveChangesAsync();
 
-                // Enter player data
+
+                // Enter player match data
                 var playerData = new List<PlayerMatchData>();
-                foreach (var steamId in steamIds)
+                foreach (var (steamId, player) in steamIds.Zip(players))
                 {
                     var data = playerObjs.GetProperty(steamId.ToString());
                     var rawUnitData = data.GetProperty("unit_data");
@@ -722,7 +751,9 @@ namespace LegionTDServerReborn.Controllers
                         LoggingUtil.Warn($"No unit data for {steamId}");
                     var newData = new PlayerMatchData
                     {
+                        Player = player,
                         PlayerId = steamId,
+                        Match = match,
                         MatchId = match.MatchId,
                         Abandoned = data.GetBoolOrDefault("abandoned"),
                         Team = data.GetIntOrDefault("team"),
@@ -731,40 +762,26 @@ namespace LegionTDServerReborn.Controllers
                         EarnedGold = data.GetIntOrDefault("earned_gold"),
                         UnitData = unitData
                     };
+                    player.Matches.Add(newData);
+                    match.PlayerData.Add(newData);
                     _db.PlayerMatchData.Add(newData);
                     playerData.Add(newData);
                 }
-                await _db.SaveChangesAsync();
-
-                // Ensure all units exists
+                // Retrieve exp for units
                 var unitNames = playerData.SelectMany(p => p.UnitData.Object.Keys).Distinct().ToList();
                 var units = await _db.GetOrCreateAsync(unitNames, u => u.Name, name => CreateUnitOrBuilder(name));
-                await _db.SaveChangesAsync();
-
-                // Now extract the units from the properties
                 var experiences = units.ToDictionary(u => u.Name, u => u.Experience);
-                playerData = await _db.PlayerMatchData
-                    .Include(p => p.Match)
-                        .ThenInclude(m => m.Duels)
-                    .Where(p => p.MatchId == match.MatchId)
-                    .IgnoreQueryFilters()
-                    .ToListAsync();
-                foreach (var pData in playerData)
-                    pData.CalculateStats(experiences);
-                await _db.SaveChangesAsync();
-
-                // Evaluate the match
+                // Check whether this is a training match
                 match.IsTraining = DecideIsTraining(match, playerData);
+                // Update ratings and statistics
+                foreach (var pd in playerData) {
+                    pd.CalculateRatingChange();  // this requires having all player histories loaded
+                    pd.CalculateStats(experiences);
+                }
                 await _db.SaveChangesAsync();
-                await ModifyRatings(match, playerData);
-                await _db.SaveChangesAsync();
-
-                // Query steam info for all players
-                await _steamApi.UpdatePlayerInformation(players.Select(p => p.SteamId));
                 await transaction.CommitAsync();
-
                 LoggingUtil.Log($"Succesfully saved; Players: {players.Count}; Duels: {createdDuels}; IsTraining: {match.IsTraining}");
-                return Json(new { Success = true });
+                return Json(new { Success = true, MatchId = match.MatchId });
             }
             catch (Exception e)
             {
@@ -785,18 +802,6 @@ namespace LegionTDServerReborn.Controllers
         {
             return playerData.All(p => p.Team == match.Winner) ||
                    playerData.All(p => p.Team != match.Winner);
-        }
-
-        private async Task ModifyRatings(Match match, List<PlayerMatchData> playerMatchDatas)
-        {
-            var l = new List<Player>();
-            foreach (var pl in playerMatchDatas)
-                l.Add(await _db.Players
-                    .Include(p => p.Matches)
-                        .ThenInclude(m => m.Match.PlayerData)
-                    .SingleAsync(player => player.SteamId == pl.PlayerId));
-            foreach (var p in l.Select(p => p.Matches.Single(m => m.MatchId == match.MatchId)))
-                p.RatingChange = p.CalculateRatingChange();
         }
 
         private Dictionary<string, UnitData> ExtractPlayerUnitData(JsonElement data)

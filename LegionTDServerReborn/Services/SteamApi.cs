@@ -69,41 +69,29 @@ namespace LegionTDServerReborn.Services
             if (query == null) {
                 query = q => q;
             }
-            var ids = playerIds.ToArray();
-            var data = await RequestPlayerInformation(ids);
-            var players = await query(_db.Players).Where(p => ids.Contains(p.SteamId)).ToListAsync();
-            var result = new Dictionary<long, Player>(data.Count);
-            foreach(var entry in data) {
-                var player = players.FirstOrDefault(p => p.SteamId == entry.Key);
-                if (player == null) {
-                    _db.Players.Add(player = new Player{SteamId = entry.Key, Matches = new List<PlayerMatchData>()});
-                } else {
-                    _db.Entry(player).State = EntityState.Modified;
-                }
-                player.Avatar = entry.Value.Avatar;
-                player.PersonaName = entry.Value.PersonaName;
-                player.RealName = entry.Value.RealName;
-                player.ProfileUrl = entry.Value.ProfileUrl;
-                result[entry.Key] = player;
-            }
+            var data = await RequestPlayerInformation(playerIds.ToArray());
+            var players = await _db.GetOrCreateAsync(playerIds, p => p.SteamId, id => new Player {
+                SteamId = id
+            }, query: query);
+            players.ForEach(p => p.Update(data[p.SteamId]));
             await _db.SaveChangesAsync();
-            return result;
+            return players.ToDictionary(p => p.SteamId);
         }
 
         public async Task<Dictionary<long, Player>> RequestPlayerInformation(IEnumerable<long> ids) {
-            StringBuilder param = new StringBuilder();
+            var param = new StringBuilder();
             foreach(var player in ids) {
                 param.Append(player + ",");
             }
-            WebRequest request = WebRequest.CreateHttp($"{SteamPlayerApi}?key={SteamApiKey}&steamids={param.ToString()}");
+            var request = WebRequest.CreateHttp($"{SteamPlayerApi}?key={SteamApiKey}&steamids={param.ToString()}");
             request.Method = "GET";
             var response = await request.GetResponseAsync();
             var responseStream = response.GetResponseStream();
-            StreamReader reader = new StreamReader(responseStream, Encoding.UTF8);
-            string content = await reader.ReadToEndAsync();
-            JObject parsed = JObject.Parse(content);
+            var reader = new StreamReader(responseStream, Encoding.UTF8);
+            var content = await reader.ReadToEndAsync();
+            var parsed = JObject.Parse(content);
             var playerInfos = parsed["response"]["players"].ToArray();
-            Dictionary<long, Player> result = new Dictionary<long, Player>();
+            var result = new Dictionary<long, Player>();
             foreach(var playerInfo in playerInfos) {
                 var id = long.Parse(playerInfo["steamid"].ToString());
                 result[id] = JsonConvert.DeserializeObject<Player>(playerInfo.ToString());

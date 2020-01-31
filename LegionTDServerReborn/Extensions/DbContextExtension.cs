@@ -14,7 +14,8 @@ namespace LegionTDServerReborn.Extensions
             Func<T1, T2> identifierFunc, 
             Func<T2, T1> initFunc,
             string property = null,
-            bool exclusive = false) where T1 : class
+            bool exclusive = false,
+            Func<IQueryable<T1>, IQueryable<T1>> query = null) where T1 : class
         {
             var idList = ids.ToList();
             if (idList.Count == 0) {
@@ -37,7 +38,11 @@ namespace LegionTDServerReborn.Extensions
             {
                 sql += $" AND {discrProp.Name} = '{discrName}'";
             }
-            var existingData = await dbSet.FromSqlRaw(sql).ToDictionaryAsync(o => identifierFunc(o), o => o);
+            var sqlQuery = dbSet.FromSqlRaw(sql);
+            if (query != null) {
+                sqlQuery = query(sqlQuery);
+            }
+            var existingData = await sqlQuery.ToDictionaryAsync(o => identifierFunc(o), o => o);
             var result = new List<T1>();
             foreach (var id in idList)
             {

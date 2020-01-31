@@ -53,26 +53,17 @@ namespace LegionTDServerReborn.Models
         {
             return DefaultRating + Matches.Where(m => m.Match.Date < date).Sum(m => m.RatingChange);
         }
+        
+        public void Update(Player data) {
+            if (data == null) {
+                return;
+            }
+            this.Avatar = data.Avatar;
+            this.PersonaName = data.PersonaName;
+            this.RealName = data.RealName;
+            this.ProfileUrl = data.ProfileUrl;
+        }
 
-        // public Dictionary<string, long> FractionKills
-        // {
-        //     get
-        //     {
-        //         Dictionary<string, long> result = new Dictionary<string, long>();
-        //         // foreach (var matchData in MatchDatas.Where(m => !m.Match.IsTraining))
-        //         // {
-        //         //     foreach (var unitData in matchData.UnitDatas)
-        //         //     {
-        //         //         string key = KilledPrefix + unitData.Unit.Fraction.Name;
-        //         //         if (!result.ContainsKey(key))
-        //         //             result[key] = unitData.Killed;
-        //         //         else
-        //         //             result[key] += unitData.Killed;
-        //         //     }
-        //         // }
-        //         return result;
-        //     }
-        // }
 
         private const string KilledPrefix = "killed_";
         private const string PlayedPrefix = "played_";

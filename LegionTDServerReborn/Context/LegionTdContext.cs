@@ -28,6 +28,7 @@ namespace LegionTDServerReborn.Models
 
         public LegionTdContext(DbContextOptions<LegionTdContext> options)
             :base (options) {
+            this.Database.SetCommandTimeout(TimeSpan.FromSeconds(60));
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
