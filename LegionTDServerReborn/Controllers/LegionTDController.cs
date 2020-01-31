@@ -774,8 +774,8 @@ namespace LegionTDServerReborn.Controllers
                 match.IsTraining = DecideIsTraining(match, playerData);
                 // Update ratings and statistics
                 foreach (var pd in playerData) {
-                    pd.RatingChange = pd.CalculateRatingChange();  // this requires having all player histories loaded
                     pd.CalculateStats(experiences);
+                    pd.RatingChange = pd.CalculateRatingChange();  // this requires having all player histories loaded
                 }
                 _db.PlayerMatchData.AddRange(playerData);
                 await _db.SaveChangesAsync();
