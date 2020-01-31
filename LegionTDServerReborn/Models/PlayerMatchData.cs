@@ -60,9 +60,11 @@ namespace LegionTDServerReborn.Models
             if (Match.IsTraining)
                 return 0;
             var oldRating = Player.GetRatingBefore(Match.Date);
-            var enemies = Match.PlayerData.Where(p => p.Team != Team)
+            var enemies = Match.PlayerData
+                .Where(p => p.Team != Team)
                 .Select(p => p.Player);
-            var team = Match.PlayerData.Where(p => p.Team == Team)
+            var team = Match.PlayerData
+                .Where(p => p.Team == Team)
                 .Select(p => p.Player);
             var enemyAvg = enemies.Average(e => e.GetRatingBefore(Match.Date));
             var teamAvg = team.Average(t => t.GetRatingBefore(Match.Date));

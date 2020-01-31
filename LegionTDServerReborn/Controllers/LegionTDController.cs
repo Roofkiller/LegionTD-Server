@@ -764,7 +764,6 @@ namespace LegionTDServerReborn.Controllers
                     };
                     player.Matches.Add(newData);
                     match.PlayerData.Add(newData);
-                    _db.PlayerMatchData.Add(newData);
                     playerData.Add(newData);
                 }
                 // Retrieve exp for units
@@ -775,9 +774,10 @@ namespace LegionTDServerReborn.Controllers
                 match.IsTraining = DecideIsTraining(match, playerData);
                 // Update ratings and statistics
                 foreach (var pd in playerData) {
-                    pd.CalculateRatingChange();  // this requires having all player histories loaded
+                    pd.RatingChange = pd.CalculateRatingChange();  // this requires having all player histories loaded
                     pd.CalculateStats(experiences);
                 }
+                _db.PlayerMatchData.AddRange(playerData);
                 await _db.SaveChangesAsync();
                 await transaction.CommitAsync();
                 LoggingUtil.Log($"Succesfully saved; Wave {lastWave}; Duration {duration}; Players: {players.Count}; Duels: {createdDuels}; IsTraining: {match.IsTraining}");
