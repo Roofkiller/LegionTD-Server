@@ -298,7 +298,7 @@ namespace LegionTDServerReborn.Controllers
 
             using (var transcation = await _db.Database.BeginTransactionAsync()) {
                 await _db.Database.ExecuteSqlRawAsync($"DELETE FROM Rankings WHERE Type = {(int)type} AND Ascending = {(asc ? 1 : 0)}");
-                Console.WriteLine($"Cleared Ranking for {type} {asc}");
+                LoggingUtil.Log($"Cleared Ranking for {type} {asc}");
                 string sql;
                 string sqlJoins = "JOIN Matches AS m \n" +
                                     "ON m.MatchId = pm.MatchId \n";
@@ -383,7 +383,6 @@ namespace LegionTDServerReborn.Controllers
                 var statistics = new UnitData();
                 if (unitData.TryGetValue(unit.Name, out var stats))
                 {
-                    Console.WriteLine(unit.Name);
                     foreach (var s in stats)
                         statistics += s;
                 }
@@ -481,7 +480,7 @@ namespace LegionTDServerReborn.Controllers
 
         private bool ValidateSecretKey(string secretKey)
         {
-            Console.WriteLine($"Received secret key: {secretKey}");
+            LoggingUtil.Log($"Received secret key: {secretKey}");
             return secretKey == this._dedicatedServerKey;
         }
 
@@ -676,12 +675,13 @@ namespace LegionTDServerReborn.Controllers
                 _db.Matches.Add(match);
                 await _db.SaveChangesAsync();
                 using var loggingContext = new LoggingContext($"#{match.MatchId}");
+                LoggingUtil.Log($"Adding Match {match.MatchId}");
 
                 //Adding Duels
+                int createdDuels = 0;
                 if (duelDataString.TryToJson(out JsonDocument duelDocument) 
                     && duelDocument.RootElement.ValueKind == JsonValueKind.Object)
                 {
-                    int createdDuels = 0;
                     foreach (var duelProp in duelDocument.RootElement.EnumerateObject())
                     {
                         var order = int.Parse(duelProp.Name);
@@ -697,7 +697,6 @@ namespace LegionTDServerReborn.Controllers
                         _db.Duels.Add(duel);
                         createdDuels += 1;
                     }
-                    LoggingUtil.Log($"Added {createdDuels} duels");
                 } else
                 {
                     LoggingUtil.Warn($"No duel data available for Game");
@@ -705,14 +704,12 @@ namespace LegionTDServerReborn.Controllers
                 await _db.SaveChangesAsync();
 
                 //Adding player Data
-                LoggingUtil.Log($"Creating players");
                 var playerObjs = playerDataString.ToJsonElement();
                 var steamIds = playerObjs.EnumerateObject().Select(p => long.Parse(p.Name)).ToList();
                 var players = await _db.GetOrCreateAsync(steamIds, p => p.SteamId, steamId => new Player { SteamId = steamId });
                 await _db.SaveChangesAsync();
 
                 // Enter player data
-                LoggingUtil.Log($"Found {players.Count} of {steamIds.Count} players; Adding player data");
                 var playerData = new List<PlayerMatchData>();
                 foreach (var steamId in steamIds)
                 {
@@ -745,7 +742,6 @@ namespace LegionTDServerReborn.Controllers
                 await _db.SaveChangesAsync();
 
                 // Now extract the units from the properties
-                LoggingUtil.Log($"Added match data for {playerData.Count} player; Computing Player stats");
                 var experiences = units.ToDictionary(u => u.Name, u => u.Experience);
                 playerData = await _db.PlayerMatchData
                     .Include(p => p.Match)
@@ -758,7 +754,6 @@ namespace LegionTDServerReborn.Controllers
                 await _db.SaveChangesAsync();
 
                 // Evaluate the match
-                LoggingUtil.Log($"Validating");
                 match.IsTraining = DecideIsTraining(match, playerData);
                 await _db.SaveChangesAsync();
                 await ModifyRatings(match, playerData);
@@ -768,7 +763,7 @@ namespace LegionTDServerReborn.Controllers
                 await _steamApi.UpdatePlayerInformation(players.Select(p => p.SteamId));
                 await transaction.CommitAsync();
 
-                LoggingUtil.Log($"Succesfully saved. Is training: {match.IsTraining}");
+                LoggingUtil.Log($"Succesfully saved; Players: {players.Count}; Duels: {createdDuels}; IsTraining: {match.IsTraining}");
                 return Json(new { Success = true });
             }
             catch (Exception e)
