@@ -780,7 +780,7 @@ namespace LegionTDServerReborn.Controllers
                 }
                 await _db.SaveChangesAsync();
                 await transaction.CommitAsync();
-                LoggingUtil.Log($"Succesfully saved; Players: {players.Count}; Duels: {createdDuels}; IsTraining: {match.IsTraining}");
+                LoggingUtil.Log($"Succesfully saved; Wave {lastWave}; Duration {duration}; Players: {players.Count}; Duels: {createdDuels}; IsTraining: {match.IsTraining}");
                 return Json(new { Success = true, MatchId = match.MatchId });
             }
             catch (Exception e)
