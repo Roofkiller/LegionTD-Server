@@ -496,11 +496,11 @@ namespace LegionTDServerReborn.Controllers
         public async Task<ActionResult> Post(string method, int? winner, string playerData, string data, float duration,
             int lastWave, string duelData, long? steamId, string secret_key)
         {
+            using var _logginContext = new LoggingContext($"POST {method}");
             if (!(await CheckIp() || ValidateSecretKey(secret_key)))
             {
                 return Json(new NoPermissionFailure());
             }
-            using var _logginContext = new LoggingContext($"POST {method}");
             LoggingUtil.Log($"Called method {method}");
             switch (method)
             {
