@@ -86,7 +86,7 @@ namespace LegionTDServerReborn.Controllers
             bool ascending, string steamIds, int? matchId, bool ipCheck, int? numDays, string fraction)
         {
             var rType = !string.IsNullOrWhiteSpace(rankingType) && RankingTypeDict.ContainsKey(rankingType) ? RankingTypeDict[rankingType] : RankingTypes.Invalid;
-            using var _logginContext = new LoggingContext($"GET {method}");
+            using var _loggingContext = new LoggingContext($"GET {method}");
             switch (method)
             {
                 case GetMethods.CheckIp:
@@ -116,9 +116,8 @@ namespace LegionTDServerReborn.Controllers
                 case GetMethods.FractionDataHistory:
                     return await FractionDataHistory(numDays, fraction);
                 default:
-                    break;
+                    return Json(new InvalidRequestFailure());
             }
-            return Json(new InvalidRequestFailure());
         }
 
         public async Task<ActionResult> SetIpCheck(bool value)
