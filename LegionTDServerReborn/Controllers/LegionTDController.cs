@@ -31,6 +31,7 @@ namespace LegionTDServerReborn.Controllers
         private readonly FileLogger _fileLogger;
         private const string PlayerCountKey = "player_count";
         private readonly string _dedicatedServerKey;
+        private static readonly object _dbLock = new object();
 
 
         protected override void Dispose(bool disposing)
@@ -297,48 +298,49 @@ namespace LegionTDServerReborn.Controllers
             var oldTimeout =_db.Database.GetCommandTimeout();
             _db.Database.SetCommandTimeout(TimeSpan.FromHours(1));
             try {
-                using (var transcation = await _db.Database.BeginTransactionAsync()) {
-                    await _db.Database.ExecuteSqlRawAsync($"DELETE FROM Rankings WHERE Type = {(int)type} AND Ascending = {(asc ? 1 : 0)}");
-                    LoggingUtil.Log($"Cleared Ranking for {type} {asc}");
-                    string sql;
-                    string sqlJoins = "JOIN Matches AS m \n" +
-                                        "ON m.MatchId = pm.MatchId \n";
-                    string sqlWheres = "WHERE m.IsTraining = FALSE \n";
-                    string sqlSelects, sqlOrderBy;
-                    switch (type)
-                    {
-                        case RankingTypes.EarnedTangos:
-                            sqlSelects = ", SUM(EarnedTangos) AS Gold \n";
-                            sqlOrderBy = "ORDER BY Gold " + (asc ? "ASC" : "DESC") + " \n";
-                            break;
-                        case RankingTypes.EarnedGold:
-                            sqlSelects = ", SUM(EarnedGold) AS Gold \n";
-                            sqlOrderBy = "ORDER BY Gold " + (asc ? "ASC" : "DESC") + " \n";
-                            break;
-                        case RankingTypes.Rating:
-                        default:
-                            sqlSelects = ", SUM(RatingChange) AS Rating \n";
-                            sqlOrderBy = "ORDER BY Rating " + (asc ? "ASC" : "DESC") + " \n";
-                            sqlJoins = "";
-                            sqlWheres = "";
-                            break;
-                    }
-                    sql = "INSERT INTO Rankings \n" +
-                        "(Type, Ascending, PlayerId, Position) \n" +
-                        $"SELECT @t := {(int)type}, @a := {(asc ? "TRUE" : "FALSE")}, PlayerId, @rownum := @rownum + 1 AS position\n" +
-                        "FROM (SELECT PlayerId \n" +
-                        sqlSelects +
-                        "FROM PlayerMatchData AS pm \n" +
-                        sqlJoins +
-                        sqlWheres +
-                        "GROUP BY pm.PlayerId \n" +
-                        sqlOrderBy +
-                        ") AS pr, \n" +
-                        "(SELECT @rownum := 0) AS r \n";
-                    await _db.Database.ExecuteSqlRawAsync(sql);
-                    await transcation.CommitAsync();
-                    LoggingUtil.Log("Ranking has been updated.");
+                using var transcation = await _db.Database.BeginTransactionAsync();
+                await _db.Database.ExecuteSqlRawAsync($"DELETE FROM Rankings WHERE Type = {(int)type} AND Ascending = {(asc ? 1 : 0)}");
+                LoggingUtil.Log($"Cleared Ranking for {type} {asc}");
+                string sql;
+                string sqlJoins = "JOIN Matches AS m \n" +
+                                    "ON m.MatchId = pm.MatchId \n";
+                string sqlWheres = "WHERE m.IsTraining = FALSE \n";
+                string sqlSelects, sqlOrderBy;
+                switch (type)
+                {
+                    case RankingTypes.EarnedTangos:
+                        sqlSelects = ", SUM(EarnedTangos) AS Gold \n";
+                        sqlOrderBy = "ORDER BY Gold " + (asc ? "ASC" : "DESC") + " \n";
+                        break;
+                    case RankingTypes.EarnedGold:
+                        sqlSelects = ", SUM(EarnedGold) AS Gold \n";
+                        sqlOrderBy = "ORDER BY Gold " + (asc ? "ASC" : "DESC") + " \n";
+                        break;
+                    case RankingTypes.Rating:
+                    default:
+                        sqlSelects = ", SUM(RatingChange) AS Rating \n";
+                        sqlOrderBy = "ORDER BY Rating " + (asc ? "ASC" : "DESC") + " \n";
+                        sqlJoins = "";
+                        sqlWheres = "";
+                        break;
                 }
+                sql = "INSERT INTO Rankings \n" +
+                    "(Type, Ascending, PlayerId, Position) \n" +
+                    $"SELECT @t := {(int)type}, @a := {(asc ? "TRUE" : "FALSE")}, PlayerId, @rownum := @rownum + 1 AS position\n" +
+                    "FROM (SELECT PlayerId \n" +
+                    sqlSelects +
+                    "FROM PlayerMatchData AS pm \n" +
+                    sqlJoins +
+                    sqlWheres +
+                    "GROUP BY pm.PlayerId \n" +
+                    sqlOrderBy +
+                    ") AS pr, \n" +
+                    "(SELECT @rownum := 0) AS r \n";
+                await _db.Database.ExecuteSqlRawAsync(sql);
+                lock (_dbLock) {
+                    transcation.Commit();
+                }
+                LoggingUtil.Log("Ranking has been updated.");
             } catch (Exception e) {
                 LoggingUtil.Error(e.ToString());
                 LoggingUtil.Error("Failed to update ranking");
@@ -357,7 +359,9 @@ namespace LegionTDServerReborn.Controllers
             {
                 await UpdateUnitStatistics_Internal();
                 await _db.SaveChangesAsync();
-                await transaction.CommitAsync();
+                lock (_dbLock) {
+                    transaction.Commit();
+                }
                 LoggingUtil.Log("Unit statistics have been updated.");
                 return Json(new { success = true });
             }
@@ -430,7 +434,9 @@ namespace LegionTDServerReborn.Controllers
             {
                 await UpdateFractionStatistics_Internal();
                 await _db.SaveChangesAsync();
-                await transaction.CommitAsync();
+                lock (_dbLock) {
+                    transaction.Commit();
+                }
                 LoggingUtil.Log("Fraction statistics have been updated.");
                 return Json(new { success = true });
             }
@@ -613,7 +619,9 @@ namespace LegionTDServerReborn.Controllers
                     await _db.GetOrCreateAsync(usedAbilities, a => a.Name, CreateAbility);
                 }
                 await _db.SaveChangesAsync();
-                await transaction.CommitAsync();
+                lock (_dbLock) {
+                    transaction.Commit();
+                }
                 return Json(new { Success = true });
             }
             catch (Exception e)
@@ -645,7 +653,9 @@ namespace LegionTDServerReborn.Controllers
                     ability.UpdateValues(values);
                 }
                 await _db.SaveChangesAsync();
-                await transaction.CommitAsync();
+                lock (_dbLock) {
+                    transaction.Commit();
+                }
                 return Json(new { Success = true });
             }
             catch (Exception e)
@@ -778,7 +788,9 @@ namespace LegionTDServerReborn.Controllers
                 }
                 _db.PlayerMatchData.AddRange(playerData);
                 await _db.SaveChangesAsync();
-                await transaction.CommitAsync();
+                lock (_dbLock) {
+                    transaction.Commit();
+                }
                 LoggingUtil.Log($"Succesfully saved; Wave {lastWave}; Duration {duration}; Players: {players.Count}; Duels: {createdDuels}; IsTraining: {match.IsTraining}");
                 return Json(new { Success = true, MatchId = match.MatchId });
             }
