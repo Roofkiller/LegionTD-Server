@@ -27,7 +27,6 @@ namespace LegionTDServerReborn
                 .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
                 .AddEnvironmentVariables();
             Configuration = builder.Build();
-            
         }
 
         public IConfigurationRoot Configuration { get; }
@@ -57,6 +56,7 @@ namespace LegionTDServerReborn
                     options.UseMySql(Configuration.GetConnectionString("MySQLConnection"),
                                      sqlServerOptions => {
                                          sqlServerOptions.CommandTimeout((int)TimeSpan.FromHours(1).TotalSeconds);
+                                         sqlServerOptions.EnableRetryOnFailure();
                                         });
                 });
             services.Configure<GzipCompressionProviderOptions>(options => options.Level =
